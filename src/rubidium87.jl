@@ -40,6 +40,7 @@ module rubidium87
     sminus(s::Any) = sminus(convert(Spin, s))
     sx(s::Any) = sx(convert(Spin, s))
     sy(s::Any) = sy(convert(Spin, s))
+    sz(s::Any) = sz(convert(Spin, s))
     id(s::Any) = id(convert(Spin, s))
 
     Ix = kron(sx(3//2), id(1//2), id(0))
@@ -47,10 +48,10 @@ module rubidium87
     Iz = kron(sz(3//2), id(1//2), id(0))
     Sx = kron(id(3//2), sx(1//2), id(0))
     Sy = kron(id(3//2), sy(1//2), id(0))
-    Sz = kron(id(3//2), sy(1//2), id(0))
-    Lx = kron(id(3//2), id(1//2), id(0))
-    Ly = kron(id(3//2), id(1//2), id(0))
-    Lz = kron(id(3//2), id(1//2), id(0))
+    Sz = kron(id(3//2), sz(1//2), id(0))
+    Lx = kron(id(3//2), id(1//2), sx(0))
+    Ly = kron(id(3//2), id(1//2), sy(0))
+    Lz = kron(id(3//2), id(1//2), sz(0))
     Jx = Sx .+ Lx
     Jy = Sy .+ Ly
     Jz = Sz .+ Lz
