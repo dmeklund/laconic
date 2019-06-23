@@ -14,24 +14,35 @@
 julia>
 ```
 """
-module base
+module Laconic
     import LinearAlgebra: transpose
     import SparseArrays: sparse
     MatrixType{T} = AbstractArray{T, 2}
     VectorType{T} = AbstractArray{T, 1}
 
-    struct Basis
+    struct Basis{T}
         name::String
         ndims::Int64
-        basisToXform::AbstractDict{Basis,MatrixType{Any}}
-        function Basis(name::String, ndims::Int64, basisToXform::AbstractDict{Basis,MatrixType{Any}}) where {T}
-            new(name, ndims, basisToXform)
+        basisToXform::AbstractDict{Basis,MatrixType{T}}
+        function Basis{T}(
+                name::String,
+                ndims::Int64,
+                basisToXform::AbstractDict{Basis,MatrixType{T}}
+        ) where {T}
+            new{T}(name, ndims, basisToXform)
         end
     end
-    Basis(name::String, ndims::Int64) = Basis(name, ndims, Dict{Basis,MatrixType{Any}}())
-    Basis(name::String, basisA::Basis, toBasisA::MatrixType) = begin
-        basisToXform = Dict{Basis,MatrixType}(basisA => toBasisA)
-        basisB = Basis(name, basisA.ndims, basisToXform)
+
+    Basis{T}(name::String, ndims::Int64) where {T} =
+        Basis{T}(name, ndims, Dict{Basis,MatrixType{T}}())
+
+    function Basis{T}(
+            name::String,
+            basisA::Basis{T},
+            toBasisA::MatrixType{T}
+    ) where {T}
+        basisToXform = Dict{Basis,MatrixType{T}}(basisA => toBasisA)
+        basisB = Basis{T}(name, basisA.ndims, basisToXform)
         fromBasisA = inv(toBasisA)
         basisA.basisToXform[basisB] = fromBasisA
         basisB
@@ -77,12 +88,12 @@ module base
             end
         end
     end
-    function convertToBasis(state::State, basis::Basis)
+    function convertToBasis(state::State, basis::Basis{T}) where T
         if (state.basis == basis)
             state
         else
             xform = state.basis.basisToXform[basis]
-            new_vec = xform * state.vector |> VectorType
+            new_vec = xform * state.vector |> VectorType{T}
             State(new_vec, basis)
         end
     end
@@ -97,20 +108,20 @@ module base
     module spin
         import LinearAlgebra: transpose
         import SparseArrays: sparse
-        # import base: Basis, MatrixType, Operator
+        import Laconic: Basis, MatrixType, Operator
 
         struct Spin
             spin::Rational
             Spin(spin::Rational) = spin.den in (1,2) && spin >= 0 ? new(spin) : error("Invalid spin")
         end
-        dicke(s::Spin) = Basis("Dicke", 2*s.spin+1 |> Integer)
+        dicke(s::Spin) = Basis{Rational}("Dicke", 2*s.spin+1 |> Integer)
         function splus(s::Spin)
             Is = 1:2*s.spin
             Js = 2:2*s.spin+1
             Ms = s.spin-1:-1:-s.spin
             Vs = sqrt.(s.spin*(s.spin+1) .- Ms.*(Ms.+1))
             basis = dicke(s)
-            Operator("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1) |> MatrixType, basis)
+            Operator("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1) |> MatrixType{Rational}, basis)
         end
         sminus(s::Spin) = transpose(splus(s), "sminus")
         sx(s::Spin) = Operator("sx", (splus(s) + sminus(s)) / 2)
