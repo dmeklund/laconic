@@ -24,12 +24,12 @@ module Laconic
         name::String
         ndims::Int64
         colnames::Union{Nothing,Tuple{Vararg{AbstractString}}}
-        basisToXform::AbstractDict{Basis,MatrixType{T}}
+        basisToXform::AbstractDict{Basis{T},MatrixType{T}}
         function Basis{T}(
                 name::String,
                 ndims::Int64,
                 colnames::Union{Nothing,Tuple{Vararg{AbstractString}}},
-                basisToXform::AbstractDict{Basis,MatrixType{T}}
+                basisToXform::AbstractDict{Basis{T},MatrixType{T}}
         ) where {T}
             if !isnothing(colnames) && length(colnames) != ndims
                 error("Length mismatch: $(length(colname)) != $(ndims)")
@@ -47,7 +47,7 @@ module Laconic
     end
 
     Basis{T}(name::String, ndims::Int64, colnames::Union{Nothing,Tuple{Vararg{AbstractString}}}) where {T} =
-        Basis{T}(name, ndims, colnames, Dict{Basis,MatrixType{T}}())
+        Basis{T}(name, ndims, colnames, Dict{Basis{T},MatrixType{T}}())
 
     function Basis{T}(
             name::String,
@@ -55,7 +55,7 @@ module Laconic
             basisA::Basis{T},
             toBasisA::MatrixType{T}
     ) where {T}
-        basisToXform = Dict{Basis,MatrixType{T}}(basisA => toBasisA)
+        basisToXform = Dict{Basis{T},MatrixType{T}}(basisA => toBasisA)
         basisB = Basis{T}(name, basisA.ndims, colnames, basisToXform)
         fromBasisA = inv(toBasisA)
         basisA.basisToXform[basisB] = fromBasisA
@@ -89,14 +89,14 @@ module Laconic
         if op1.basis != op2.basis
             error("Bases don't match: $(op1.basis), $(op2.basis)")
         end
-        Operator{T}("$(op1.name)+$(op2.name)", op1.matrix+op2.matrix |> MatrixType{T}, op1.basis)
+        Operator{T}("$(op1.name)+$(op2.name)", op1.matrix+op2.matrix, op1.basis)
     end
     Operator{T}(name::String, op::Operator{T}) where T = Operator{T}(name, op.matrix, op.basis)
     function Base.:*(op::Operator{T}, scale::Number) where T
-        Operator{T}("$(op.name)*$(scale)", op.matrix*scale |> MatrixType{T}, op.basis)
+        Operator{T}("$(op.name)*$(scale)", op.matrix*scale, op.basis)
     end
     function Base.:/(op::Operator{T}, scale::Number) where {T}
-        Operator{T}("$(op.name)/$(scale)", op.matrix/scale |> MatrixType{T}, op.basis)
+        Operator{T}("$(op.name)/$(scale)", op.matrix/scale, op.basis)
     end
     function Base.:*(op1::Operator{T}, op2::Operator{T}) where T
         if op1.basis != op2.basis
@@ -108,7 +108,7 @@ module Laconic
         if op1.basis != op2.basis
             error("Bases don't match: $(op1.basis), $(op2.basis)")
         end
-        Operator{T}("$(op1.name)-$(op2.name)", op1.matrix-op2.matrix |> MatrixType{T}, op1.basis)
+        Operator{T}("$(op1.name)-$(op2.name)", op1.matrix-op2.matrix, op1.basis)
     end
 
     struct State{T}
@@ -127,7 +127,7 @@ module Laconic
             state
         else
             xform = state.basis.basisToXform[basis]
-            new_vec = xform * state.vector |> VectorType{T}
+            new_vec = xform * state.vector
             State{T}(new_vec, basis)
         end
     end
@@ -157,18 +157,22 @@ module Laconic
             end
         end
     end
-    dicke(s::Spin) = Basis{Rational}("Dicke", 2*s.spin+1 |> Integer)
+    dicke(s::Spin) = Basis{Float64}("Dicke", 2*s.spin+1 |> Integer)
     function splus(s::Spin)
         Is = 1:2*s.spin
         Js = 2:2*s.spin+1
         Ms = s.spin-1:-1:-s.spin
         Vs = sqrt.(s.spin*(s.spin+1) .- Ms.*(Ms.+1))
         basis = dicke(s)
-        Operator{Rational}("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1) |> MatrixType{Rational}, basis)
+        Operator{Float64}("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1), basis)
     end
     sminus(s::Spin) = transpose(splus(s), "sminus")
-    sx(s::Spin) = Operator{Rational}("sx", (splus(s) + sminus(s)) / 2//1)
-    sy(s::Spin) = Operator{Rational}("sy", (splus(s) - sminus(s)) / 2)
-    sz(s::Spin) = Operator{Rational}("sz", sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin) |> MatrixType{Rational}, dicke(s))
+    sx(s::Spin) = Operator{Float64}("sx", (splus(s) + sminus(s)) / 2)
+    sy(s::Spin) = Operator{Float64}("sy", (splus(s) - sminus(s)) / 2)
+    sz(s::Spin) = Operator{Float64}(
+        "sz",
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{Float64}),
+        dicke(s)
+    )
 
 end
