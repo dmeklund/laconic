@@ -110,6 +110,12 @@ module Laconic
         end
         Operator{T}("$(op1.name)-$(op2.name)", op1.matrix-op2.matrix, op1.basis)
     end
+    function Base.:*(val::T2, op::Operator{T}) where {T, T2 <: Number}
+        Operator{T}("$(val)*($op.name)", val*op.matrix, op.basis)
+    end
+    function Base.:(==)(op1::Operator{T}, op2::Operator{T}) where T
+        op1.basis == op2.basis && op1.matrix ≈ op2.matrix
+    end
 
     struct State{T}
         vector::VectorType{T}
@@ -157,21 +163,21 @@ module Laconic
             end
         end
     end
-    dicke(s::Spin) = Basis{Float64}("Dicke", 2*s.spin+1 |> Integer)
+    dicke(s::Spin) = Basis{ComplexF64}("Dicke", (2*s.spin).num+1)
     function splus(s::Spin)
         Is = 1:2*s.spin
         Js = 2:2*s.spin+1
         Ms = s.spin-1:-1:-s.spin
-        Vs = sqrt.(s.spin*(s.spin+1) .- Ms.*(Ms.+1))
+        Vs = sqrt.(s.spin*(s.spin+1) .- Ms.*(Ms.+1)) .+ 0.0im
         basis = dicke(s)
-        Operator{Float64}("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1), basis)
+        Operator{ComplexF64}("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1), basis)
     end
     sminus(s::Spin) = transpose(splus(s), "sminus")
-    sx(s::Spin) = Operator{Float64}("sx", (splus(s) + sminus(s)) / 2)
-    sy(s::Spin) = Operator{Float64}("sy", (splus(s) - sminus(s)) / 2)
-    sz(s::Spin) = Operator{Float64}(
+    sx(s::Spin) = Operator{ComplexF64}("sx", (splus(s) + sminus(s)) / 2.0)
+    sy(s::Spin) = Operator{ComplexF64}("sy", (splus(s) - sminus(s)) / 2.0im)
+    sz(s::Spin) = Operator{ComplexF64}(
         "sz",
-        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{Float64}),
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{ComplexF64}),
         dicke(s)
     )
 

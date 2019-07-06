@@ -1,6 +1,6 @@
 import Laconic: Basis, State, VectorType, MatrixType, convertToBasis, commutator
 import Laconic: Spin, sx, sy, sz
-using LinearAlgebra: dot
+import LinearAlgebra: dot, I
 
 function exercise2_1()
     increment(theta, psi) = [cos(theta/2), exp(im*psi)*sin(theta/2)]
@@ -33,6 +33,8 @@ function exercise3_2()
     sx_ = sx(spin)
     sy_ = sy(spin)
     sz_ = sz(spin)
+    @assert commutator(sx_, sy_) == 1.0im*sz_
+    @assert (sx_*sx_ + sy_*sy_ + sz_*sz_).matrix ≈ (spin.spin * (spin.spin+1))I
 end
 
 exercise2_1()
