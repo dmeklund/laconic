@@ -15,7 +15,8 @@ julia>
 ```
 """
 module Laconic
-    import LinearAlgebra: transpose, I
+    import LinearAlgebra: transpose, I, kron
+    import LinearAlgebra
     import SparseArrays: sparse
     MatrixType{T} = AbstractArray{T, 2}
     VectorType{T} = AbstractArray{T, 1}
@@ -57,12 +58,15 @@ module Laconic
     ) where {T}
         basisToXform = Dict{Basis{T},MatrixType{T}}(basisA => toBasisA)
         basisB = Basis{T}(name, basisA.ndims, colnames, basisToXform)
-        fromBasisA = inv(toBasisA)
-        basisA.basisToXform[basisB] = fromBasisA
+        # fromBasisA = inv(toBasisA)
+        # basisA.basisToXform[basisB] = fromBasisA
         basisB
     end
     Basis{T}(name::String, ndims::Int64) where T = Basis{T}(name, ndims, nothing)
     Base.:(==)(basis1::Basis{T}, basis2::Basis{T}) where T = basis1.name == basis2.name && basis1.colnames == basis2.colnames && basis1.ndims == basis2.ndims
+    function LinearAlgebra.kron(basis1::Basis{T}, basis2::Basis{T}) where T
+        Basis{T}("$(basis1.name)⊗$(basis2.name)", basis1.ndims*basis2.ndims, nothing)
+    end
 
     function is_orthonormal(matrix::MatrixType{T}) where T
         product = transpose(matrix) * matrix
@@ -116,6 +120,13 @@ module Laconic
     function Base.:(==)(op1::Operator{T}, op2::Operator{T}) where T
         op1.basis == op2.basis && op1.matrix ≈ op2.matrix
     end
+    function LinearAlgebra.kron(op1::Operator{T}, op2::Operator{T}) where T
+        Operator{T}(
+            "$(op1.name)⊗$(op2.name)",
+            kron(op1.matrix, op2.matrix),
+            kron(op1.basis, op2.basis)
+        )
+    end
 
     struct State{T}
         vector::VectorType{T}
@@ -128,6 +139,10 @@ module Laconic
             end
         end
     end
+    function LinearAlgebra.kron(state1::State{T}, state2::State{T}) where T
+        State{T}(kron(state1.vector))
+    end
+
     function convertToBasis(state::State{T}, basis::Basis{T}) where T
         if (state.basis == basis)
             state
@@ -162,6 +177,7 @@ module Laconic
                 error("Invalid spin")
             end
         end
+        Spin(spin::Integer) = Spin(spin//1)
     end
     dicke(s::Spin) = Basis{ComplexF64}("Dicke", (2*s.spin).num+1)
     function splus(s::Spin)
@@ -180,5 +196,11 @@ module Laconic
         sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{ComplexF64}),
         dicke(s)
     )
+    id(s::Spin) = Operator{ComplexF64}(
+        "id",
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, ones((2*s.spin).num+1) |> VectorType{ComplexF64}),
+        dicke(s)
+    )
 
+    include("Symbolic.jl")
 end

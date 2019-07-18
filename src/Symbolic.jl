@@ -1,6 +1,6 @@
 module Symbolic
     export AbstractStatement, AbstractExpression, Equals, BinaryAddition, NAryAddition
-    using Laconic: Basis, MatrixType
+    using Laconic: Basis, MatrixType, is_orthonormal
     import LinearAlgebra
 
     abstract type AbstractStatement{T <: Tuple} end
@@ -9,6 +9,7 @@ module Symbolic
         lhs::T1
         rhs::T2
     end
+    Base.transpose(expr::AbstractExpression) = expr
     # struct BinaryAddition{T1, T2} <: AbstractExpression{Tuple{T1,T2}}
     #     first::T1
     #     second::T2
@@ -24,10 +25,11 @@ module Symbolic
     struct Product{T <: Tuple} <: AbstractExpression{T}
         elements::T
     end
+    Base.copy(expr::Product{T}) where T = Product{T}(expr.elements)
     struct Negation{T} <: AbstractExpression{Tuple{T}}
         element::T
     end
-    struct Inversion{T} <: AbstractExpression{Tuple{T}}
+    struct Inversion{T} <: AbstractArray{AbstractExpression{Tuple{T}},2}
         element::Array{T,2}
     end
     Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Product((first, second))
@@ -37,10 +39,12 @@ module Symbolic
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = T1 + -T2
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
     LinearAlgebra.inv(expr::Array{T,2}) where {T <: AbstractExpression} = Inversion{T}(expr)
+    Base.size(expr::Inversion{T}) where T = size(expr.element)
 
     struct Cosine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
+    Base.copy(expr::Cosine{T}) where T = Cosine{T}(expr.argument)
     struct Sine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
@@ -53,6 +57,7 @@ module Symbolic
     struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
         value::T
     end
+    Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
     struct Vector{T <: AbstractArray} <: AbstractExpression{Tuple{T}}
         value::T
     end
@@ -73,6 +78,8 @@ module Symbolic
             basisUpDown,
             xform |> MatrixType{AbstractExpression}
         )
+        # @assert(is_orthonormal(xform))
+        print(xform)
 
         # Cosine(theta / Numeric(2)) * state_up + Exponential(Numeric(im)*phi) * Sine(theta / Numeric(2)) * state_down
 
