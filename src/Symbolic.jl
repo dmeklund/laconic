@@ -8,26 +8,118 @@ module Symbolic
         lhs::T1
         rhs::T2
     end
+    function parenthesize(io::IO, expr::AbstractExpression)
+        print(io, "(", expr, ")")
+    end
+    LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
-    # struct BinaryAddition{T1, T2} <: AbstractExpression{Tuple{T1,T2}}
-    #     first::T1
-    #     second::T2
-    # end
+    Base.zero(expr::AbstractExpression) = Numeric(0)
+
+    struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
+        value::T
+    end
+    Base.conj(expr::Numeric) = Numeric(conj(expr.value))
+    # parenthesize(io::IO, number::Numeric) = print(io, number)
+    Base.show(io::IO, number::Numeric) = print(io, number.value)
+    Base.:(==)(first::Numeric, second::Numeric) = (first.value == second.value)
+    Base.:(==)(first::Numeric, second::Number) = (first.value == second)
+    Base.:(==)(first::Number, second::Numeric) = (first == second.value)
+    Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
+
     struct NAryAddition{T <: Tuple} <: AbstractExpression{T}
         elements::T
     end
+    Base.show(io::IO, expr::NAryAddition) = join(io, expr.elements, "+")
+    NAryAddition(elem1, elem2) = begin
+        if elem1 == -elem2
+            Numeric(0)
+        elseif elem1 == 0
+            elem2
+        elseif elem2 == 0
+            elem1
+        else
+            NAryAddition((elem1, elem2))
+        end
+    end
     NAryAddition(elements...) = NAryAddition(elements)
+    Base.conj(expr::NAryAddition) = begin
+        NAryAddition([conj(element) for element in expr.elements])
+    end
+
     struct Division{T1, T2} <: AbstractExpression{Tuple{T1,T2}}
         numerator::T1
         denominator::T2
     end
+    Base.conj(expr::Division{T1,T2}) where {T1, T2} = Division(conj(expr.numerator), conj(expr.denominator))
+    Base.show(io::IO, expr::Division{T1,T2}) where {T1,T2} = begin
+        parenthesize(io, expr.numerator)
+        print(io, "/")
+        parenthesize(io, expr.denominator)
+    end
+
+
+    struct Exponential{T} <: AbstractExpression{Tuple{T}}
+        argument::T
+    end
+    Base.conj(expr::Exponential) = Exponential(conj(expr.argument))
+    parenthesize(io::IO, expr::Exponential) = print(io, expr)
+    Base.show(io::IO, expr::Exponential{T}) where T = print(io, "exp(", expr.argument, ")")
+    Exponential(expr::Numeric) = begin
+        if expr == 0
+            Numeric(1)
+        else
+            invoke(Exponential, Tuple{AbstractExpression}, expr)
+        end
+    end
+
+
     struct Product{T <: Tuple} <: AbstractExpression{T}
         elements::T
     end
+    Base.:(==)(lhs::Product, rhs::Product) = lhs.elements == rhs.elements
+    Base.conj(expr::Product) = Product([conj(element) for element in expr.elements]...)
     Base.copy(expr::Product{T}) where T = Product{T}(expr.elements)
+    Base.show(io::IO, expr::Product{T}) where T = begin
+        for (index, element) in enumerate(expr.elements)
+            parenthesize(io, element)
+            if index != length(expr.elements)
+                print(io, "*")
+            end
+        end
+    end
+    # Product(args...) = Product(args)
+    Product(expr1::AbstractExpression, expr2::AbstractExpression) = begin
+        if expr1 == 0 || expr2 == 0
+            Numeric(0)
+        elseif expr1 == 1
+            expr2
+        elseif expr2 == 1
+            expr1
+        elseif expr1 == expr2
+            Power(expr1, Numeric(2))
+        else
+            Product((expr1, expr2))
+        end
+    end
+    Product(expr1::Product{T1}, expr2::Product{T2}) where {T1, T2} = begin
+        Product(tuple(expr1.elements..., expr2.elements...))
+    end
+    Product(expr1::Exponential{T1}, expr2::Exponential{T2}) where {T1,T2} = begin
+        Exponential(expr1.argument + expr2.argument)
+    end
+    Product(expr1::Product{Tuple{Exponential{T1}, T2}}, expr2::Product{Tuple{Exponential{T3}, T4}}) where {T1, T2, T3, T4} = begin
+        (expr1.elements[1] * expr2.elements[1]) * expr1.elements[2] * expr2.elements[2]
+    end
+
     struct Power{T1 <: AbstractExpression, T2 <: AbstractExpression} <: AbstractExpression{Tuple{T1, T2}}
         x::T1
         y::T2
+    end
+    Base.conj(expr::Power{T1,Numeric{Integer}}) where T1 = Power(conj(expr.x), expr.y)
+    Base.show(io::IO, expr::Power) = begin
+        parenthesize(io, expr.x)
+        print(io, "^")
+        parenthesize(io, expr.y)
     end
     Product(x1::T1, x2::T2) where {T1,T2} = begin
         if x1 == x2
@@ -36,12 +128,18 @@ module Symbolic
             Product{Tuple{T1,T2}}((x1,x2))
         end
     end
+
     struct Negation{T} <: AbstractExpression{Tuple{T}}
         element::T
     end
+    Negation(expr::Numeric{T}) where T = Numeric(-expr.value)
+    Negation(expr::Product{T}) where T = Product(-expr.elements[1], expr.elements[2:end]...)
+    Base.conj(expr::Negation) = Negation(conj(expr.element))
+    Base.show(io::IO, expr::Negation{T}) where T = print(io, "-", expr.element)
     struct Inversion{T} <: AbstractArray{AbstractExpression{Tuple{T}},2}
         element::Array{T,2}
     end
+
     function Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression}
         Product(first, second)
     end
@@ -52,68 +150,51 @@ module Symbolic
     end
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = T1 + -T2
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
+
     LinearAlgebra.inv(expr::Array{T,2}) where {T <: AbstractExpression} = Inversion{T}(expr)
     Base.size(expr::Inversion{T}) where T = size(expr.element)
 
     struct Cosine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
+    Base.conj(expr::Cosine) = Cosine(conj(expr.argument))
+    parenthesize(io::IO, expr::Cosine{T}) where T = print(io, expr)
     Base.copy(expr::Cosine{T}) where T = Cosine{T}(expr.argument)
+    Base.show(io::IO, expr::Cosine{T}) where T = print(io, "cos(", expr.argument, ")")
+
     struct Sine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
-    struct Exponential{T} <: AbstractExpression{Tuple{T}}
-        argument::T
-    end
-    struct Symbol <: AbstractExpression{Tuple{String}}
+    Base.conj(expr::Sine) = Sine(conj(expr.argument))
+    parenthesize(io::IO, expr::Sine{T}) where T = print(io, expr)
+    Base.show(io::IO, expr::Sine{T}) where T = print(io, "sin(", expr.argument, ")")
+
+    struct SSymbol <: AbstractExpression{Tuple{String}}
         name::String
     end
-    struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
-        value::T
-    end
-    Base.:(==)(first::Numeric, second::Numeric) = (first.value == second.value)
-    Base.:(==)(first::Numeric, second::Number) = (first.value == second)
-    Base.:(==)(first::Number, second::Numeric) = (first == second.value)
-    Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
+    Base.conj(expr::SSymbol) = expr # FIXME
+    parenthesize(io::IO, expr::SSymbol) = print(io, expr)
+    Base.show(io::IO, symbol::SSymbol) = print(io, symbol.name)
+
     struct Vector{T <: AbstractArray} <: AbstractExpression{Tuple{T}}
         value::T
     end
-    function exercise2_1()
-        state_up = Vector([1, 0])
-        state_down = Vector([0, 1])
-        theta = Symbol("ϑ")
-        phi = Symbol("ϕ")
-        increment(theta, phi) = [Cosine(theta/Numeric(2)), Exponential(Numeric(im)*phi)*Sine(theta/Numeric(2))]
-        decrement(theta, phi) = [-Exponential(Numeric(-im)*phi)*Sine(theta/Numeric(2)), Cosine(theta/Numeric(2))]
-        basisUpDown = Basis{AbstractExpression}("UpDown", 2, ("up", "down"))
-        inc = increment(theta, phi)
-        dec = decrement(theta, phi)
-        xform = hcat(inc, dec)
-        basisIncDec = Basis{AbstractExpression}(
-            "IncDec",
-            ("inc", "dec"),
-            basisUpDown,
-            xform |> MatrixType{AbstractExpression}
-        )
-        # @assert(is_orthonormal(xform))
-        # print(xform)
-        xform
-        # Cosine(theta / Numeric(2)) * state_up + Exponential(Numeric(im)*phi) * Sine(theta / Numeric(2)) * state_down
-
-    end
 
     # simplification rules
-    function NAryAddition(val1::Power{Sine{T},Numeric}, val2::Power{Cosine{T},Numeric}) where T
+    function NAryAddition(val1::Power{Sine{T1},Numeric{T2}}, val2::Power{Cosine{T3},Numeric{T4}}) where {T1,T2,T3,T4}
         if val1.y == 2 && val2.y == 2 && val1.x.argument == val2.x.argument
             Numeric{Integer}(1)
         else
             NAryAddition((val1, val2))
         end
     end
+    function NAryAddition(val1::Power{Cosine{T1},Numeric{T2}}, val2::Power{Sine{T3},Numeric{T4}}) where {T1,T2,T3,T4}
+        val2 + val1
+    end
 
     export AbstractStatement, AbstractExpression
     export Equals, BinaryAddition, NAryAddition
-    export Numeric, Symbol
-    export Product
+    export Numeric, SSymbol
+    export Product, Exponential, Division, Power
     export Sine, Cosine
 end
