@@ -19,7 +19,11 @@ module Symbolic
         value::T
     end
     Base.conj(expr::Numeric) = Numeric(conj(expr.value))
-    # parenthesize(io::IO, number::Numeric) = print(io, number)
+    parenthesize(io::IO, number::Numeric) = print(io, number)
+    parenthesize(io::IO, number::Numeric{Complex{T}}) where T = begin
+        print(io, "(", number, ")")
+    end
+    parenthesize(io::IO, number::Numeric{Complex{Bool}}) = print(io, number)
     Base.show(io::IO, number::Numeric) = print(io, number.value)
     Base.:(==)(first::Numeric, second::Numeric) = (first.value == second.value)
     Base.:(==)(first::Numeric, second::Number) = (first.value == second)
@@ -87,8 +91,7 @@ module Symbolic
             end
         end
     end
-    # Product(args...) = Product(args)
-    Product(expr1::AbstractExpression, expr2::AbstractExpression) = begin
+    Product(expr1::AbstractExpression{T1}, expr2::AbstractExpression{T2}) where {T1,T2} = begin
         if expr1 == 0 || expr2 == 0
             Numeric(0)
         elseif expr1 == 1
@@ -101,8 +104,17 @@ module Symbolic
             Product((expr1, expr2))
         end
     end
+    Product(arg1::AbstractExpression{T}, more...) where {T} = begin
+        Product(tuple(arg1, more...))
+    end
     Product(expr1::Product{T1}, expr2::Product{T2}) where {T1, T2} = begin
         Product(tuple(expr1.elements..., expr2.elements...))
+    end
+    Product(expr1::AbstractExpression{T1}, expr2::Product{T2}) where {T1,T2} = begin
+        Product(expr1, expr2.elements...)
+    end
+    Product(expr1::Product{T1}, expr2::AbstractExpression{T2}) where {T1,T2} = begin
+        Product(expr1.elements..., expr2)
     end
     Product(expr1::Exponential{T1}, expr2::Exponential{T2}) where {T1,T2} = begin
         Exponential(expr1.argument + expr2.argument)
@@ -192,9 +204,45 @@ module Symbolic
         val2 + val1
     end
 
+    function combineterms(expr::Product{T}) where T
+        elements_copy = [expr.elements...]
+        for (ind1, elem1) in enumerate(elements_copy)
+            for ind2 in ind1+1:length(elements_copy)
+                elem2 = elements_copy[ind2]
+                if elem1 == elem2
+                    elements_copy[ind1] = Power(elem1, Numeric(2))
+                    deleteat!(elements_copy, ind2)
+                    return combineterms(Product(elements_copy...))
+                end
+                if isa(elem1, Negation) && isa(elem2, Negation)
+                    elements_copy[ind1] = elem1.element
+                    elements_copy[ind2] = elem2.element
+                    return combineterms(Product(elements_copy...))
+                end
+                if isa(elem1, Exponential) && isa(elem2, Exponential)
+                    elements_copy[ind1] = Exponential(elem1.argument + elem2.argument)
+                    deleteat!(elements_copy, ind2)
+                    return combineterms(Product(elements_copy...))
+                end
+            end
+        end
+        expr
+    end
+    function combineterms(expr::NAryAddition{T}) where T
+        elements_copy = [expr.elements...]
+        for (ind1, elem1) in enumerate(elements_copy)
+            elements_copy[ind1] = combineterms(elem1)
+        end
+        NAryAddition(tuple(elements_copy...))
+    end
+    function combineterms(expr)
+        expr
+    end
+
     export AbstractStatement, AbstractExpression
     export Equals, BinaryAddition, NAryAddition
     export Numeric, SSymbol
     export Product, Exponential, Division, Power
     export Sine, Cosine
+    export combineterms
 end
