@@ -23,7 +23,7 @@ function exercise2_1()
     # @assert dot(dec, conj(dec)) == 1
     println("inc . inc* = $(dot(inc, conj(inc)))")
     println("dec . dec* = $(combineterms(dot(dec, conj(dec))))")
-    println("inc . dec* = $(dot(inc, conj(dec)))")
+    println("inc . dec* = $(combineterms(dot(inc, conj(dec))))")
     # xform = hcat(inc, dec)
     # basisIncDec = Basis{AbstractExpression}(
     #     "IncDec",

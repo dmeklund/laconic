@@ -207,6 +207,11 @@ module Symbolic
     function combineterms(expr::Product{T}) where T
         elements_copy = [expr.elements...]
         for (ind1, elem1) in enumerate(elements_copy)
+            if isa(elem1, Negation) && ind1 != 1
+                elements_copy[1] = Negation(elements_copy[1])
+                elements_copy[ind1] = elem1.element
+                combineterms(Product(elements_copy...))
+            end
             for ind2 in ind1+1:length(elements_copy)
                 elem2 = elements_copy[ind2]
                 if elem1 == elem2
@@ -226,6 +231,8 @@ module Symbolic
                 end
             end
         end
+        # sort!(elements_copy)
+        # Product(elements_copy...)
         expr
     end
     function combineterms(expr::NAryAddition{T}) where T
@@ -233,7 +240,7 @@ module Symbolic
         for (ind1, elem1) in enumerate(elements_copy)
             elements_copy[ind1] = combineterms(elem1)
         end
-        NAryAddition(tuple(elements_copy...))
+        NAryAddition(elements_copy...)
     end
     function combineterms(expr)
         expr
