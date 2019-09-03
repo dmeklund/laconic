@@ -205,12 +205,15 @@ module Symbolic
     end
 
     function combineterms(expr::Product{T}) where T
-        elements_copy = [expr.elements...]
+        elements_copy = [combineterms(element) for element in expr.elements]
         for (ind1, elem1) in enumerate(elements_copy)
             if isa(elem1, Negation) && ind1 != 1
                 elements_copy[1] = Negation(elements_copy[1])
                 elements_copy[ind1] = elem1.element
-                combineterms(Product(elements_copy...))
+                return combineterms(Product(elements_copy...))
+            end
+            if isa(elem1, Product)
+                return combineterms(Product(elements_copy[1:ind1-1]..., elem1.arguments..., elements_copy[ind1+1:end]))
             end
             for ind2 in ind1+1:length(elements_copy)
                 elem2 = elements_copy[ind2]
