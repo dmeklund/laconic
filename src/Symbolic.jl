@@ -35,7 +35,7 @@ module Symbolic
     end
     Base.show(io::IO, expr::NAryAddition) = join(io, expr.elements, "+")
     NAryAddition(elem1, elem2) = begin
-        if elem1 == -elem2
+        if combineterms(elem1) == combineterms(-elem2)
             Numeric(0)
         elseif elem1 == 0
             elem2
@@ -66,6 +66,7 @@ module Symbolic
         argument::T
     end
     Base.conj(expr::Exponential) = Exponential(conj(expr.argument))
+    Base.:(==)(lhs::Exponential, rhs::Exponential) = lhs.argument == rhs.argument
     parenthesize(io::IO, expr::Exponential) = print(io, expr)
     Base.show(io::IO, expr::Exponential{T}) where T = print(io, "exp(", expr.argument, ")")
     Exponential(expr::Numeric) = begin
@@ -80,7 +81,9 @@ module Symbolic
     struct Product{T <: Tuple} <: AbstractExpression{T}
         elements::T
     end
-    Base.:(==)(lhs::Product, rhs::Product) = lhs.elements == rhs.elements
+    Base.:(==)(lhs::Product, rhs::Product) = begin
+        sort!([lhs.elements...], by=repr) == sort!([rhs.elements...], by=repr)
+    end
     Base.conj(expr::Product) = Product([conj(element) for element in expr.elements]...)
     Base.copy(expr::Product{T}) where T = Product{T}(expr.elements)
     Base.show(io::IO, expr::Product{T}) where T = begin
@@ -145,7 +148,8 @@ module Symbolic
         element::T
     end
     Negation(expr::Numeric{T}) where T = Numeric(-expr.value)
-    Negation(expr::Product{T}) where T = Product(-expr.elements[1], expr.elements[2:end]...)
+    Negation(expr::Negation) = expr.element
+    Base.:(==)(lhs::Negation, rhs::Negation) = lhs.element == rhs.element
     Base.conj(expr::Negation) = Negation(conj(expr.element))
     Base.show(io::IO, expr::Negation{T}) where T = print(io, "-", expr.element)
     struct Inversion{T} <: AbstractArray{AbstractExpression{Tuple{T}},2}
@@ -160,7 +164,7 @@ module Symbolic
     function Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression}
         NAryAddition(first, second)
     end
-    Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = T1 + -T2
+    Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
 
     LinearAlgebra.inv(expr::Array{T,2}) where {T <: AbstractExpression} = Inversion{T}(expr)
@@ -204,13 +208,18 @@ module Symbolic
         val2 + val1
     end
 
+    function combineterms(expr::Negation{Product{T}}) where T
+        combineterms(Product(-expr.element.elements[1], expr.element.elements[2:end]...))
+    end
+
     function combineterms(expr::Product{T}) where T
         elements_copy = [combineterms(element) for element in expr.elements]
+        sort!(elements_copy, by=repr)
         for (ind1, elem1) in enumerate(elements_copy)
             if isa(elem1, Negation) && ind1 != 1
-                elements_copy[1] = Negation(elements_copy[1])
+                elements_copy[1] = -elements_copy[1]
                 elements_copy[ind1] = elem1.element
-                return combineterms(Product(elements_copy...))
+                return Negation(combineterms(Product(elements_copy...)))
             end
             if isa(elem1, Product)
                 return combineterms(Product(elements_copy[1:ind1-1]..., elem1.arguments..., elements_copy[ind1+1:end]))
@@ -239,11 +248,22 @@ module Symbolic
         expr
     end
     function combineterms(expr::NAryAddition{T}) where T
-        elements_copy = [expr.elements...]
+        elements_copy = [expr.elements...] |> Array{AbstractExpression,1}
         for (ind1, elem1) in enumerate(elements_copy)
             elements_copy[ind1] = combineterms(elem1)
         end
+        for (ind1, elem1) in enumerate(elements_copy)
+            for (ind2, elem2) in enumerate(elements_copy[ind1+1:end])
+                if (elem1 == -elem2)
+                    elements_copy[ind1] = Numeric(0)
+                    elements_copy[ind1+ind2] = Numeric(0)
+                end
+            end
+        end
         NAryAddition(elements_copy...)
+    end
+    function combineterms(expr::Exponential)
+        Exponential(expr.argument)
     end
     function combineterms(expr)
         expr
@@ -254,5 +274,6 @@ module Symbolic
     export Numeric, SSymbol
     export Product, Exponential, Division, Power
     export Sine, Cosine
+    export Negation
     export combineterms
 end

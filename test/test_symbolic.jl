@@ -21,7 +21,7 @@ function exercise2_1()
     # @assert dot(inc, conj(inc)) == 1
 
     # @assert dot(dec, conj(dec)) == 1
-    println("inc . inc* = $(dot(inc, conj(inc)))")
+    println("inc . inc* = $(combineterms(dot(inc, conj(inc))))")
     println("dec . dec* = $(combineterms(dot(dec, conj(dec))))")
     println("inc . dec* = $(combineterms(dot(inc, conj(dec))))")
     # xform = hcat(inc, dec)
