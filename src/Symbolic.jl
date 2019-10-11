@@ -1,5 +1,5 @@
 module Symbolic
-    using Laconic: Basis, MatrixType, is_orthonormal
+    using Laconic: Basis, MatrixType
     import LinearAlgebra
 
     abstract type AbstractStatement{T <: Tuple} end
@@ -267,6 +267,11 @@ module Symbolic
     end
     function combineterms(expr)
         expr
+    end
+
+    function is_unitary(matrix::MatrixType{T}) where {T <: A
+        product = matrix * conj(transpose(matrix))
+        combineterms.(product) == I
     end
 
     export AbstractStatement, AbstractExpression

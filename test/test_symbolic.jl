@@ -1,6 +1,6 @@
 import Laconic.Symbolic: Cosine, Exponential, Numeric, Sine, Cosine, AbstractExpression, SSymbol
 import Laconic.Symbolic: Basis, combineterms
-import Laconic: MatrixType
+import Laconic: MatrixType, is_unitary
 
 function exercise2_1()
     state_up = Vector([1, 0])
@@ -18,19 +18,23 @@ function exercise2_1()
     basisUpDown = Basis{AbstractExpression}("UpDown", 2, ("up", "down"))
     inc = increment(theta, phi)
     dec = decrement(theta, phi)
-    # @assert dot(inc, conj(inc)) == 1
-
-    # @assert dot(dec, conj(dec)) == 1
     println("inc . inc* = $(combineterms(dot(inc, conj(inc))))")
     println("dec . dec* = $(combineterms(dot(dec, conj(dec))))")
     println("inc . dec* = $(combineterms(dot(inc, conj(dec))))")
-    # xform = hcat(inc, dec)
-    # basisIncDec = Basis{AbstractExpression}(
-    #     "IncDec",
-    #     ("inc", "dec"),
-    #     basisUpDown,
-    #     xform |> MatrixType{AbstractExpression}
-    # )
+    @assert combineterms(dot(inc, conj(inc))) == 1
+    @assert combineterms(dot(dec, conj(dec))) == 1
+    @assert combineterms(dot(inc, conj(dec))) == 0
+    # @assert dot(inc, conj(inc)) == 1
+
+    # @assert dot(dec, conj(dec)) == 1
+    xform = hcat(inc, dec)
+    @assert is_unitary(xform)
+    basisIncDec = Basis{AbstractExpression}(
+        "IncDec",
+        ("inc", "dec"),
+        basisUpDown,
+        xform |> MatrixType{AbstractExpression}
+    )
     # # @assert(is_orthonormal(xform))
     # println(xform)
     # println(transpose(xform) * xform)

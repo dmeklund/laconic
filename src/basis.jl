@@ -46,3 +46,5 @@ Base.:(==)(basis1::Basis{T}, basis2::Basis{T}) where T = basis1.name == basis2.n
 function LinearAlgebra.kron(basis1::Basis{T}, basis2::Basis{T}) where T
     Basis{T}("$(basis1.name)⊗$(basis2.name)", basis1.ndims*basis2.ndims, nothing)
 end
+
+export Basis

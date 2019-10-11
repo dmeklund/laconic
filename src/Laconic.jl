@@ -19,13 +19,10 @@ module Laconic
     MatrixType{T} = AbstractArray{T, 2}
     VectorType{T} = AbstractArray{T, 1}
 
-    function is_orthonormal(matrix::MatrixType{T}) where T
-        product = transpose(matrix) * matrix
-        product == I
-    end
-
     include("basis.jl")
     include("operator.jl")
     include("spin.jl")
     include("Symbolic.jl")
+
+    export MatrixType, VectorType, is_unitary
 end
