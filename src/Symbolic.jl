@@ -1,6 +1,7 @@
 module Symbolic
     using Laconic: Basis, MatrixType
     import LinearAlgebra
+    using LinearAlgebra: I
 
     abstract type AbstractStatement{T <: Tuple} end
     abstract type AbstractExpression{T <: Tuple} end
@@ -269,7 +270,7 @@ module Symbolic
         expr
     end
 
-    function is_unitary(matrix::MatrixType{T}) where {T <: A
+    function is_unitary(matrix::MatrixType{T}) where {T}
         product = matrix * conj(transpose(matrix))
         combineterms.(product) == I
     end
@@ -280,5 +281,5 @@ module Symbolic
     export Product, Exponential, Division, Power
     export Sine, Cosine
     export Negation
-    export combineterms
+    export combineterms, is_unitary
 end

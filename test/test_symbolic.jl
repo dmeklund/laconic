@@ -1,6 +1,6 @@
 import Laconic.Symbolic: Cosine, Exponential, Numeric, Sine, Cosine, AbstractExpression, SSymbol
-import Laconic.Symbolic: Basis, combineterms
-import Laconic: MatrixType, is_unitary
+import Laconic.Symbolic: Basis, combineterms, is_unitary
+import Laconic: MatrixType
 
 function exercise2_1()
     state_up = Vector([1, 0])
