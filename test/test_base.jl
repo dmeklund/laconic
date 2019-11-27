@@ -1,5 +1,5 @@
 import Laconic: Basis, State, VectorType, MatrixType, convertToBasis, commutator
-import Laconic: Spin, sx, sy, sz, id
+import Laconic.SpinM: Spin, sx, sy, sz, id
 import LinearAlgebra: dot, I, kron
 
 function exercise2_1()
