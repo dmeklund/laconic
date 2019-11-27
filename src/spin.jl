@@ -1,7 +1,7 @@
 module SpinM
     import LinearAlgebra: transpose
     import SparseArrays: sparse
-    import Laconic: Basis, MatrixType, Operator
+    import Laconic: Basis, MatrixType, Operator, VectorType
 
     struct Spin
         spin::Rational
@@ -28,7 +28,7 @@ module SpinM
     sy(s::Spin) = Operator{ComplexF64}("sy", (splus(s) - sminus(s)) / 2.0im)
     sz(s::Spin) = Operator{ComplexF64}(
         "sz",
-        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin), # |> VectorType{ComplexF64}),
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{ComplexF64}),
         dicke(s)
     )
     id(s::Spin) = Operator{ComplexF64}(
