@@ -24,5 +24,5 @@ module Laconic
     include("spin.jl")
     include("Symbolic.jl")
 
-    export MatrixType, VectorType, is_unitary
+    export MatrixType, VectorType, is_unitary, commutator
 end
