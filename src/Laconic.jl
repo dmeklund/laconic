@@ -23,6 +23,8 @@ module Laconic
     include("operator.jl")
     include("spin.jl")
     include("Symbolic.jl")
+    include("calculus.jl")
+    include("system.jl")
 
     export MatrixType, VectorType, is_unitary, commutator
 end

@@ -9,9 +9,7 @@ module Symbolic
         lhs::T1
         rhs::T2
     end
-    function parenthesize(io::IO, expr::AbstractExpression)
-        print(io, "(", expr, ")")
-    end
+    parenthesize(io::IO, expr::AbstractExpression) = print(io, "(", expr, ")")
     LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
     Base.zero(expr::AbstractExpression) = Numeric(0)
@@ -157,14 +155,10 @@ module Symbolic
         element::Array{T,2}
     end
 
-    function Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression}
-        Product(first, second)
-    end
+    Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Product(first, second)
     Base.:/(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Division(first, second)
     Base.:+(first::NAryAddition, second::NAryAddition) = NAryAddition(first.elements..., second.elements...)
-    function Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression}
-        NAryAddition(first, second)
-    end
+    Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = NAryAddition(first, second)
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
 
