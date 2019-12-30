@@ -166,6 +166,8 @@ module Symbolic
     end
 
     Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Product(first, second)
+    Base.:*(first::Number, second::T) where {T <: AbstractExpression} = Numeric(first) * second
+    Base.:*(first::T, second::Number) where {T <: AbstractExpression} = first * Numeric(second)
     Base.:/(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Division(first, second)
     Base.:+(first::NAryAddition, second::NAryAddition) = NAryAddition(first.elements..., second.elements...)
     Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = NAryAddition(first, second)

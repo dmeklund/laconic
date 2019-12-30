@@ -8,7 +8,7 @@ module Calculus
     using QuadGK
     using Laconic.Symbolic
 
-    struct DefiniteIntegral{T1, T2, T3}
+    struct DefiniteIntegral{T1, T2, T3} <: AbstractExpression{Tuple{T1,T2,T3}}
         variable::Variable
         startpoint::T1
         endpoint::T2
@@ -43,6 +43,9 @@ module Calculus
     convertToFunction(num::Numeric, var::Variable) = x -> num.value
     convertToFunction(expr::Product, var::Variable) = begin
         x -> prod(convertToFunction(item, var)(x) for item in expr.elements)
+    end
+    convertToFunction(expr::NAryAddition, var::Variable) = begin
+        x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
     end
 
     export Variable, DefiniteIntegral, convertToFunction, evaluateIntegral
