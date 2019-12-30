@@ -14,11 +14,19 @@ module Symbolic
     Base.transpose(expr::AbstractExpression) = expr
     Base.zero(expr::AbstractExpression) = Numeric(0)
 
+    struct Variable <: AbstractExpression{Tuple{}}
+        label::String
+    end
+    Base.show(io::IO, var::Variable) = print(io, var.label)
+    parenthesize(io::IO, var::Variable) = print(io, var)
+
     struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
         value::T
     end
     Base.conj(expr::Numeric) = Numeric(conj(expr.value))
+    parenthesize(io::IO, other) = print(io, other)
     parenthesize(io::IO, number::Numeric) = print(io, number)
+    parenthesize(io::IO, number::Number) = print(io, number)
     parenthesize(io::IO, number::Numeric{Complex{T}}) where T = begin
         print(io, "(", number, ")")
     end
@@ -129,6 +137,8 @@ module Symbolic
         x::T1
         y::T2
     end
+    Base.:(^)(x::T1, y::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Power(x, y)
+    Base.:(^)(x::T, y::Number) where {T <: AbstractExpression} = Power(x, Numeric(y))
     Base.conj(expr::Power{T1,Numeric{Integer}}) where T1 = Power(conj(expr.x), expr.y)
     Base.show(io::IO, expr::Power) = begin
         parenthesize(io, expr.x)
@@ -270,6 +280,7 @@ module Symbolic
     end
 
     export AbstractStatement, AbstractExpression
+    export Variable
     export Equals, BinaryAddition, NAryAddition
     export Numeric, SSymbol
     export Product, Exponential, Division, Power
