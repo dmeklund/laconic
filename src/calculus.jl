@@ -5,6 +5,7 @@ calculus:
 - Date: 2019-12-26
 =#
 module Calculus
+    using QuadGk
     struct IntegrationVariable
         label::String
     end
@@ -14,5 +15,16 @@ module Calculus
         endpoint::T2
         integrand::T3
     end
+
+    function evaluate(integral::DefiniteIntegral)
+        integrandFunction = convertToFunction(integral.integrand)
+
+    end
+
+    convertToFunction(f::Function) = f
+    convertToFunction(integral::DefiniteIntegral) = begin
+        variables = findIntegrationVariables(integral)
+    end
+
     export IntegrationVariable, DefiniteIntegral
 end
