@@ -1,6 +1,8 @@
 import LinearAlgebra
 
-struct Basis{T}
+abstract type AbstractBasis end
+
+struct Basis{T} <: AbstractBasis
     name::String
     ndims::Int64
     colnames::Union{Nothing,Tuple{Vararg{AbstractString}}}
@@ -45,6 +47,15 @@ Basis{T}(name::String, ndims::Int64) where T = Basis{T}(name, ndims, nothing)
 Base.:(==)(basis1::Basis{T}, basis2::Basis{T}) where T = basis1.name == basis2.name && basis1.colnames == basis2.colnames && basis1.ndims == basis2.ndims
 function LinearAlgebra.kron(basis1::Basis{T}, basis2::Basis{T}) where T
     Basis{T}("$(basis1.name)⊗$(basis2.name)", basis1.ndims*basis2.ndims, nothing)
+end
+
+struct MomentumBasis <: AbstractBasis
+    a::AbstractFloat
+    
+end
+
+function generateMomentumBasis(n::Integer, width)
+
 end
 
 export Basis
