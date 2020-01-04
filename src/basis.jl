@@ -1,6 +1,10 @@
 import LinearAlgebra
 
 abstract type AbstractBasis end
+abstract type AbstractOperator end
+abstract type AbstractState end
+
+hbar = 1
 
 struct Basis{T} <: AbstractBasis
     name::String
@@ -51,11 +55,44 @@ end
 
 struct MomentumBasis <: AbstractBasis
     a::AbstractFloat
-    
 end
 
-function generateMomentumBasis(n::Integer, width)
-
+struct MomentumEigenstate <: AbstractState
+    a::AbstractFloat
+    n::Integer
+    coeff::AbstractFloat
 end
 
-export Basis
+struct MomentumSquaredOperator <: AbstractOperator
+end
+
+struct PositionOperator <: AbstractOperator
+end
+
+struct ScaledOperator <: AbstractOperator
+    coeff::AbstractFloat
+    op::AbstractOperator
+end
+
+function apply(operator::MomentumSquaredOperator, state::MomentumEigenstate)
+    MomentumEigenstate(
+        state.a,
+        state.n,
+        state.coeff * state.n^2 * pi^2 * hbar^2 / state.a^2
+    )
+end
+
+Base.:(*)(val::Number, op::AbstractOperator) = ScaledOperator(val, op)
+Base.:(*)(op::AbstractOperator, val::Number) = val * op
+
+function apply(operator::ScaledOperator, state::AbstractState)
+    operator.coeff * apply(operator.op, state)
+end
+
+function createDiscreteBasis(basis::MomentumBasis, N::Integer)
+    Basis("momentum", N)
+end
+
+export Basis, AbstractBasis
+export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
+export PositionOperator

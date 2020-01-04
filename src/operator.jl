@@ -1,4 +1,4 @@
-struct Operator{T}
+struct Operator{T} <: AbstractOperator
     name::String
     matrix::MatrixType{T}
     basis::Basis
@@ -88,3 +88,5 @@ end
 function commutator(op1::Operator{T}, op2::Operator{T}) where T
     op1*op2 - op2*op1
 end
+
+export apply

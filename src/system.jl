@@ -1,6 +1,13 @@
 module SystemM
+    using Laconic
     using Laconic.Calculus
     using DifferentialEquations
+    using Laconic.Symbolic
+    using SparseArrays
+    import FFTW
+
+    hbar = 1.0
+
     abstract type System end
 #     abstract type ElectromagneticSystem <: System end
 #     struct TimeIndependentMagneticField <: ElectromagneticSystem
@@ -8,6 +15,12 @@ module SystemM
 #     end
 #     function hamiltonian(system::TimeIndependentMagneticField)
 #     end
+    struct SingleParticleSystem
+        mass::Number
+        basis::AbstractBasis
+        cutoff::Integer
+        potential::AbstractExpression
+    end
     function propagator(hamiltonian, num_terms)
         result = 0
         for ind in 1:num_terms
@@ -37,10 +50,30 @@ module SystemM
     end
 
     function solve_system(hamiltonian, basis, psi0, tspan)
-        function func!(dpsi, psi, p, t)
-            dpsi = 1/(im*hbar) * (hamiltonian * psi)
+        function func!(psi, p, t)
+            1/(im*hbar) * (hamiltonian * psi)
         end
         prob = ODEProblem(func!, psi0, tspan)
         sol = solve(prob)
     end
+
+    function test_solver()
+        a = 1.0
+        mass = 1.0
+        cutoff = 10
+        elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
+        kineticEnergy = spdiagm(0 => elements)
+        xvals = Array(1:cutoff) * a / (cutoff + 1)
+        xpos = spdiagm(0 => xvals)  # x operator in the position basis (approx)
+        xmom = FFTW.r2r(xpos, FFTW.RODFT00)/(2*(cutoff+1))  # x operator in the momentum basis
+        hamiltonian = kineticEnergy + 1000*xmom
+        psi0 = zeros(Complex{Float64}, 10)
+        psi0[1] = 1.0
+        tspan = (0., 100.)
+        sol = solve_system(hamiltonian, nothing, psi0, tspan)
+        return sol
+
+    end
+
+    export test_solver
 end
