@@ -54,15 +54,15 @@ function LinearAlgebra.kron(op1::Operator{T}, op2::Operator{T}) where T
 end
 
 struct State{T}
-    vector::VectorType{T}
-    basis::Basis{T}
-    function State{T}(vector::VectorType{T}, basis::Basis{T}) where T
-        if basis.ndims == size(vector,1)
-            new{T}(vector, basis)
-        else
-            error("Dimensions mismatch: $(basis.ndims) != $(size(vector,1))")
-        end
-    end
+    vector::Vector{T}
+    basis::DiscreteBasis
+    # function State{T}(vector::Vector{T}, basis::DiscreteBasis) where T
+    #     if basis.N == size(vector,1)
+    #         new{T}(vector, basis)
+    #     else
+    #         error("Dimensions mismatch: $(basis.N) != $(size(vector,1))")
+    #     end
+    # end
 end
 function LinearAlgebra.kron(state1::State{T}, state2::State{T}) where T
     State{T}(kron(state1.vector))
@@ -85,8 +85,18 @@ function apply(operator::Operator{T}, state::State) where T
     operator.matrix * state.vec
 end
 
+function apply(op::AbstractOperator, state::State)
+    result = zeros(ComplexF64, state.basis.N)
+    for ind in 1:state.basis.N
+        basis_state = state.basis.indexToState(ind)
+        result += state.vector[ind] * apply(op, basis_state)
+    end
+    result
+end
+
 function commutator(op1::Operator{T}, op2::Operator{T}) where T
     op1*op2 - op2*op1
 end
 
 export apply
+export State

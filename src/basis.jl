@@ -24,6 +24,11 @@ struct Basis{T} <: AbstractBasis
     end
 end
 
+struct DiscreteBasis <: AbstractBasis
+    indexToState::Function
+    N::Integer
+end
+
 showInBasis(basis::Basis, showIn::Basis) = begin
     xform = basis.basisToXform[showIn]
     buffer = IOBuffer()
@@ -55,6 +60,10 @@ end
 
 struct MomentumBasis <: AbstractBasis
     a::AbstractFloat
+end
+
+function getBasisState(basis::MomentumBasis, index::Integer)
+    MomentumEigenstate(basis.a, index, 1.0)
 end
 
 struct MomentumEigenstate <: AbstractState
@@ -90,9 +99,11 @@ function apply(operator::ScaledOperator, state::AbstractState)
 end
 
 function createDiscreteBasis(basis::MomentumBasis, N::Integer)
-    Basis("momentum", N)
+    DiscreteBasis(n -> getBasisState(basis, n), N)
 end
 
 export Basis, AbstractBasis
+export AbstractOperator
 export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
+export createDiscreteBasis

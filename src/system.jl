@@ -49,12 +49,19 @@ module SystemM
         end
     end
 
+    struct TimeDependentSolution
+        tvals::Vector{Float64}
+        coeffs::Matrix{Complex{Float64}}
+        basis::AbstractBasis
+    end
+
     function solve_system(hamiltonian, basis, psi0, tspan)
         function func!(psi, p, t)
             1/(im*hbar) * (hamiltonian * psi)
         end
         prob = ODEProblem(func!, psi0, tspan)
         sol = solve(prob)
+        TimeDependentSolution(sol.t, hcat(sol.u...), basis)
     end
 
     function test_solver()
@@ -67,13 +74,36 @@ module SystemM
         xpos = spdiagm(0 => xvals)  # x operator in the position basis (approx)
         xmom = FFTW.r2r(xpos, FFTW.RODFT00)/(2*(cutoff+1))  # x operator in the momentum basis
         hamiltonian = kineticEnergy + 1000*xmom
-        psi0 = zeros(Complex{Float64}, 10)
+        num_basis = 10
+        psi0 = zeros(Complex{Float64}, num_basis)
         psi0[1] = 1.0
         tspan = (0., 100.)
-        sol = solve_system(hamiltonian, nothing, psi0, tspan)
+        basis = createDiscreteBasis(MomentumBasis(a), num_basis)
+        sol = solve_system(hamiltonian, basis, psi0, tspan)
         return sol
-
     end
 
-    export test_solver
+    function apply_at_time(op::AbstractOperator, sln::TimeDependentSolution, t::AbstractFloat)
+        state = state_at_time(sln, t)
+        apply(op, state)
+    end
+
+    function state_at_time(sln::TimeDependentSolution, t::AbstractFloat)
+        indrange = searchsorted(sln.tvals, t)
+        if indrange.start == indrange.stop
+            # indicates an exact match was found
+            statevec = sln.coeffs[:,indrange.start]
+        elseif indrange.stop == 0 || indrange.start > length(sln.t)
+            error("$(t) is out of range of the solution")
+        else
+            coeffs1 = sln.coeffs[indrange.start-1]
+            coeffs2 = sln.coeffs[indrange.start]
+            tdiff = sln.t[indrange.start] - sln.t[indrange.start-1]
+            alpha = (t - sln.t[indrange.start]) / tdiff
+            statevec = (1-alpha)*coeffs1 + alpha*coeffs2
+        end
+        State(statevec, sln.basis)
+    end
+
+    export test_solver, apply_at_time
 end
