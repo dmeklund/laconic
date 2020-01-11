@@ -69,17 +69,14 @@ module SystemM
         mass = 1.0
         cutoff = 10
         elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
-        kineticEnergy = spdiagm(0 => elements)
-        xvals = Array(1:cutoff) * a / (cutoff + 1)
-        xpos = spdiagm(0 => xvals)  # x operator in the position basis (approx)
-        xmom = FFTW.r2r(xpos, FFTW.RODFT00)/(2*(cutoff+1))  # x operator in the momentum basis
+        basis = DiscreteMomentumBasis(cutoff, a, mass)
+        kineticEnergy = kineticenergyoperator(basis)
+        xmom = positionoperator(basis) # x operator in the momentum basis
         hamiltonian = kineticEnergy + 1000*xmom
-        num_basis = 10
-        psi0 = zeros(Complex{Float64}, num_basis)
+        psi0 = zeros(Complex{Float64}, cutoff)
         psi0[1] = 1.0
         tspan = (0., 100.)
-        basis = createDiscreteBasis(MomentumBasis(a), num_basis)
-        sol = solve_system(hamiltonian, basis, psi0, tspan)
+        sol = solve_system(hamiltonian.matrix, basis, psi0, tspan)
         return sol
     end
 

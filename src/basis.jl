@@ -102,8 +102,21 @@ function createDiscreteBasis(basis::MomentumBasis, N::Integer)
     DiscreteBasis(n -> getBasisState(basis, n), N)
 end
 
+struct DiscretePositionBasis <: AbstractBasis
+    N::Integer
+    a::Real
+    mass::Real
+end
+
+struct DiscreteMomentumBasis <: AbstractBasis
+    N::Integer
+    a::Real
+    mass::Real
+end
+
 export Basis, AbstractBasis
 export AbstractOperator
 export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
+export DiscretePositionBasis, DiscreteMomentumBasis
 export createDiscreteBasis
