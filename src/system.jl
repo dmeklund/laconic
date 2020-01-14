@@ -1,8 +1,9 @@
 module SystemM
     using Laconic
     using Laconic.Calculus
-    using DifferentialEquations
     using Laconic.Symbolic
+    using LinearAlgebra
+    using DifferentialEquations
     using SparseArrays
     import FFTW
 
@@ -21,7 +22,12 @@ module SystemM
         cutoff::Integer
         potential::AbstractExpression
     end
-    function propagator(hamiltonian, num_terms)
+
+    function propagator(hamiltonian::Operator, delta_t::Number)
+        Operator("propagator", exp(-im*delta_t/hbar * hamiltonian.matrix), hamiltonian.basis)
+    end
+
+    function propagator_magnus(hamiltonian, num_terms)
         result = 0
         for ind in 1:num_terms
             result += propagator_element(hamiltonian, ind)
@@ -56,8 +62,8 @@ module SystemM
     end
 
     function solve_system(hamiltonian, basis, psi0, tspan)
-        function func!(psi, p, t)
-            1/(im*hbar) * (hamiltonian * psi)
+        function func!(dpsi, psi, p, t)
+            dpsi[:] = 1/(im*hbar) * (hamiltonian * psi)
         end
         prob = ODEProblem(func!, psi0, tspan)
         sol = solve(prob)
@@ -65,17 +71,21 @@ module SystemM
     end
 
     function test_solver()
-        a = 1.0
+        a = 10.0
         mass = 1.0
-        cutoff = 10
+        cutoff = 80
         elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
-        basis = DiscreteMomentumBasis(cutoff, a, mass)
+        basis = DiscretePositionBasis(cutoff, a, mass)
         kineticEnergy = kineticenergyoperator(basis)
-        xmom = positionoperator(basis) # x operator in the momentum basis
-        hamiltonian = kineticEnergy + 1000*xmom
+        xop = positionoperator(basis) # x operator in the momentum basis
+        hamiltonian = kineticEnergy + xop
+        # hamiltonian = xop
         psi0 = zeros(Complex{Float64}, cutoff)
-        psi0[1] = 1.0
-        tspan = (0., 100.)
+        # psi0[:] = eigen(hamiltonian.matrix).vectors[:,1] + (rand(80).-.5)* .1
+        # psi0 /= sum(psi0 .* psi0)
+        # println(psi0)
+        psi0[10] = 1.0
+        tspan = (0., 1.)
         sol = solve_system(hamiltonian.matrix, basis, psi0, tspan)
         return sol
     end
@@ -102,5 +112,5 @@ module SystemM
         State(statevec, sln.basis)
     end
 
-    export test_solver, apply_at_time
+    export test_solver, apply_at_time, propagator
 end

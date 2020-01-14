@@ -21,19 +21,19 @@ module SpinM
         Ms = s.spin-1:-1:-s.spin
         Vs = sqrt.(s.spin*(s.spin+1) .- Ms.*(Ms.+1)) .+ 0.0im
         basis = dicke(s)
-        Operator{ComplexF64}("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1), basis)
+        Operator("splus", sparse(Is, Js, Vs, 2*s.spin+1, 2*s.spin+1), basis)
     end
     sminus(s::Spin) = transpose(splus(s), "sminus")
-    sx(s::Spin) = Operator{ComplexF64}("sx", (splus(s) + sminus(s)) / 2.0)
-    sy(s::Spin) = Operator{ComplexF64}("sy", (splus(s) - sminus(s)) / 2.0im)
-    sz(s::Spin) = Operator{ComplexF64}(
+    sx(s::Spin) = Operator("sx", (splus(s) + sminus(s)) / 2.0)
+    sy(s::Spin) = Operator("sy", (splus(s) - sminus(s)) / 2.0im)
+    sz(s::Spin) = Operator(
         "sz",
-        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> VectorType{ComplexF64}),
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> Vector{ComplexF64}),
         dicke(s)
     )
     id(s::Spin) = Operator{ComplexF64}(
         "id",
-        sparse(1:2*s.spin+1, 1:2*s.spin+1, ones((2*s.spin).num+1) |> VectorType{ComplexF64}),
+        sparse(1:2*s.spin+1, 1:2*s.spin+1, ones((2*s.spin).num+1) |> Vector{ComplexF64}),
         dicke(s)
     )
 
@@ -44,4 +44,5 @@ module SpinM
 
     export Spin, sx, sy, sz, splus, sminus, id
     export σ_x, σ_y, σ_z
+    export dicke
 end

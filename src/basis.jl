@@ -108,6 +108,15 @@ struct DiscretePositionBasis <: AbstractBasis
     mass::Real
 end
 
+function xgrid(basis::DiscretePositionBasis)
+    Array(1:basis.N) * basis.a / (basis.N + 1)
+end
+
+function createpos(basis::DiscretePositionBasis, x, sigma)
+    vec = exp.(-((x .- xgrid(basis))/(2 * sigma)).^2)
+    State(LinearAlgebra.normalize(vec), basis)
+end
+
 struct DiscreteMomentumBasis <: AbstractBasis
     N::Integer
     a::Real
@@ -120,3 +129,4 @@ export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
 export DiscretePositionBasis, DiscreteMomentumBasis
 export createDiscreteBasis
+export xgrid, createpos
