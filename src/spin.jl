@@ -31,7 +31,7 @@ module SpinM
         sparse(1:2*s.spin+1, 1:2*s.spin+1, s.spin:-1:-s.spin |> Vector{ComplexF64}),
         dicke(s)
     )
-    id(s::Spin) = Operator{ComplexF64}(
+    id(s::Spin) = Operator(
         "id",
         sparse(1:2*s.spin+1, 1:2*s.spin+1, ones((2*s.spin).num+1) |> Vector{ComplexF64}),
         dicke(s)
