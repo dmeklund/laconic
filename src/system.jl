@@ -71,21 +71,25 @@ module SystemM
     end
 
     function test_solver()
-        a = 10.0
+        a = 30.0
         mass = 1.0
-        cutoff = 80
+        cutoff = 150
         elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
         basis = DiscretePositionBasis(cutoff, a, mass)
         kineticEnergy = kineticenergyoperator(basis)
         xop = positionoperator(basis) # x operator in the momentum basis
         hamiltonian = kineticEnergy + xop
         # hamiltonian = xop
-        psi0 = zeros(Complex{Float64}, cutoff)
+        # psi0 = zeros(Complex{Float64}, cutoff)
         # psi0[:] = eigen(hamiltonian.matrix).vectors[:,1] + (rand(80).-.5)* .1
         # psi0 /= sum(psi0 .* psi0)
         # println(psi0)
-        psi0[10] = 1.0
-        tspan = (0., 1.)
+        # psi0[10] = 1.0
+        x0 = 15
+        sigma = 1.0
+        xgrid = Vector(1:cutoff) * a / (cutoff + 1)
+        psi0 = normalize(exp.(-((xgrid .- x0) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
+        tspan = (0., 100.)
         sol = solve_system(hamiltonian.matrix, basis, psi0, tspan)
         return sol
     end

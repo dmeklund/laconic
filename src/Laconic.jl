@@ -25,6 +25,7 @@ module Laconic
     include("Symbolic.jl")
     include("calculus.jl")
     include("system.jl")
-
+    include("display.jl")
+    
     export MatrixType, VectorType, is_unitary, commutator
 end
