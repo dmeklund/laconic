@@ -117,11 +117,21 @@ function createpos(basis::DiscretePositionBasis, x, sigma)
     State(LinearAlgebra.normalize(vec), basis)
 end
 
+function getstate(basis::AbstractBasis, i::Integer)
+    vec = zeros(ComplexF64, size(basis))
+    vec[i] = 1.0
+    State(vec, basis)
+end
+
 struct DiscreteMomentumBasis <: AbstractBasis
     N::Integer
     a::Real
     mass::Real
 end
+
+Base.size(basis::DiscreteMomentumBasis) = basis.N
+Base.size(basis::DiscretePositionBasis) = basis.N
+
 
 export Basis, AbstractBasis
 export AbstractOperator
@@ -130,3 +140,4 @@ export PositionOperator
 export DiscretePositionBasis, DiscreteMomentumBasis
 export createDiscreteBasis
 export xgrid, createpos
+export getstate

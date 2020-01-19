@@ -9,7 +9,7 @@ module DisplayM
     end
 
     function sliderforsoln(soln)
-        createSlider(1:length(soln.tvals), t->abs2.(soln.coeffs[:,t]))
+        createSlider(range(soln.tvals[1], soln.tvals[end], length=500), t->abs2.(soln.odesol(t)))
     end
 
     export createSlider, sliderforsoln

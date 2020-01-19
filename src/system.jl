@@ -59,6 +59,7 @@ module SystemM
         tvals::Vector{Float64}
         coeffs::Matrix{Complex{Float64}}
         basis::AbstractBasis
+        odesol
     end
 
     function solve_system(hamiltonian, basis, psi0, tspan)
@@ -67,7 +68,7 @@ module SystemM
         end
         prob = ODEProblem(func!, psi0, tspan)
         sol = solve(prob)
-        TimeDependentSolution(sol.t, hcat(sol.u...), basis)
+        TimeDependentSolution(sol.t, hcat(sol.u...), basis, sol)
     end
 
     function test_solver()

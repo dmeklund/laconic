@@ -140,9 +140,9 @@ function convertoperator(op::Operator{T,DiscreteMomentumBasis}, basis::DiscreteP
 end
 
 function positionoperator(basis::DiscretePositionBasis)
-    basispos = DiscreteMomentumBasis(basis.N, basis.a, basis.mass)
-    oppos = positionoperator(basispos)
-    convertoperator(oppos, basis)
+    basismom = DiscreteMomentumBasis(basis.N, basis.a, basis.mass)
+    opmom = positionoperator(basismom)
+    convertoperator(opmom, basis)
 end
 
 function kineticenergyoperator(basis::DiscreteMomentumBasis)
@@ -158,7 +158,26 @@ function kineticenergyoperator(basis::DiscretePositionBasis)
     convertoperator(opmom, basis)
 end
 
+function momentumoperator(basis::DiscreteMomentumBasis)
+    matrix = spzeros(ComplexF64, basis.N, basis.N)
+    for row in 1:basis.N
+        for col in 1:basis.N
+            if (row - col) % 2 != 0
+                matrix[row,col] = 4im*hbar*row*col/(basis.a*(col^2-row^2))
+            end
+        end
+    end
+    Operator("momentum", matrix, basis)
+end
+
+function momentumoperator(basis::DiscretePositionBasis)
+    basismom = DiscreteMomentumBasis(basis.N, basis.a, basis.mass)
+    opmom = momentumoperator(basismom)
+    convertoperator(opmom, basis)
+end
+
 export apply
 export State, Operator
 export positionoperator, convertoperator
 export kineticenergyoperator
+export momentumoperator
