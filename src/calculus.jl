@@ -6,6 +6,7 @@ calculus:
 =#
 module Calculus
     using QuadGK
+    using Laconic
     using Laconic.Symbolic
 
     struct DefiniteIntegral{T1, T2, T3} <: AbstractExpression{Tuple{T1,T2,T3}}
@@ -47,6 +48,34 @@ module Calculus
     convertToFunction(expr::NAryAddition, var::Variable) = begin
         x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
     end
+    convertToFunction(expr::Sine, var::Variable) = begin
+        x -> sin(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Division, var::Variable) = begin
+        x -> convertToFunction(expr.numerator, var)(x) / convertToFunction(expr.denominator, var)(x)
+    end
+
+    evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
+
+    # TODO: move me somewhere else
+
+    function positionfunc(basis::DiscreteMomentumBasis, n::Integer, x::Variable)
+        sqrt(2/basis.a) * sin(n*pi*x/basis.a)
+    end
+
+    function positionfunc(basis::DiscretePositionBasis, n::Integer, x::Variable)
+        result = 0
+        mombasis = DiscreteMomentumBasis(basis.N, basis.a, basis.mass)
+        delta = basis.a/(basis.N + 1)
+        xj = delta * n
+        for ind = 1:basis.N
+            func = positionfunc(mombasis, ind, x)
+            result = result + evalexpr(func, x, xj) * func
+        end
+        result
+    end
 
     export Variable, DefiniteIntegral, convertToFunction, evaluateIntegral
+    export positionfunc
+    export evalexpr
 end

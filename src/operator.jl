@@ -1,4 +1,5 @@
 using SparseArrays
+# using Laconic.Calculus
 import FFTW
 
 struct Operator{T1,T2} <: AbstractOperator where {T2 <: AbstractBasis}
@@ -181,3 +182,4 @@ export State, Operator
 export positionoperator, convertoperator
 export kineticenergyoperator
 export momentumoperator
+export DiscreteMomentumBasis, DiscretePositionBasis

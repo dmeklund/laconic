@@ -169,8 +169,10 @@ module Symbolic
     Base.:*(first::Number, second::T) where {T <: AbstractExpression} = Numeric(first) * second
     Base.:*(first::T, second::Number) where {T <: AbstractExpression} = first * Numeric(second)
     Base.:/(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Division(first, second)
+    Base.:/(first::T, second::Number) where {T <: AbstractExpression} = first / Numeric(second)
     Base.:+(first::NAryAddition, second::NAryAddition) = NAryAddition(first.elements..., second.elements...)
     Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = NAryAddition(first, second)
+    Base.:+(first::Number, second::AbstractExpression) = Numeric(first) + second
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
 
@@ -188,6 +190,7 @@ module Symbolic
     struct Sine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
+    Base.sin(expr::T) where {T <: AbstractExpression} = Sine(expr)
     Base.conj(expr::Sine) = Sine(conj(expr.argument))
     parenthesize(io::IO, expr::Sine{T}) where T = print(io, expr)
     Base.show(io::IO, expr::Sine{T}) where T = print(io, "sin(", expr.argument, ")")

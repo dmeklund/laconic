@@ -20,12 +20,12 @@ module Laconic
     VectorType{T} = AbstractArray{T, 1}
 
     include("basis.jl")
-    include("operator.jl")
-    include("spin.jl")
     include("Symbolic.jl")
+    include("operator.jl")
     include("calculus.jl")
     include("system.jl")
     include("display.jl")
-    
+    include("spin.jl")
+
     export MatrixType, VectorType, is_unitary, commutator
 end
