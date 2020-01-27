@@ -165,6 +165,11 @@ module Symbolic
         element::Array{T,2}
     end
 
+    struct Abs{T} <: AbstractExpression{Tuple{T}}
+        argument::T
+    end
+    Base.abs(argument::T) where T <: AbstractExpression = Abs(argument)
+
     Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Product(first, second)
     Base.:*(first::Number, second::T) where {T <: AbstractExpression} = Numeric(first) * second
     Base.:*(first::T, second::Number) where {T <: AbstractExpression} = first * Numeric(second)
@@ -182,6 +187,7 @@ module Symbolic
     struct Cosine{T} <: AbstractExpression{Tuple{T}}
         argument::T
     end
+    Base.cos(expr::T) where {T <: AbstractExpression} = Cosine(expr)
     Base.conj(expr::Cosine) = Cosine(conj(expr.argument))
     parenthesize(io::IO, expr::Cosine{T}) where T = print(io, expr)
     Base.copy(expr::Cosine{T}) where T = Cosine{T}(expr.argument)
@@ -290,6 +296,6 @@ module Symbolic
     export Numeric, SSymbol
     export Product, Exponential, Division, Power
     export Sine, Cosine
-    export Negation
+    export Negation, Abs
     export combineterms, is_unitary
 end

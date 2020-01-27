@@ -38,7 +38,7 @@ module Calculus
         integrand = convertToFunction(integral.integrand, var)
         x -> evaluateIntegral(DefiniteIntegral(integral.variable, startpoint(x), endpoint(x), integrand(x)))
     end
-    convertToFunction(expr::Power{Variable, T}, var::Variable) where {T} = begin
+    convertToFunction(expr::Power, var::Variable) where {T} = begin
         x -> convertToFunction(expr.x, var)(x) ^ convertToFunction(expr.y, var)(x)
     end
     convertToFunction(num::Numeric, var::Variable) = x -> num.value
@@ -53,6 +53,15 @@ module Calculus
     end
     convertToFunction(expr::Division, var::Variable) = begin
         x -> convertToFunction(expr.numerator, var)(x) / convertToFunction(expr.denominator, var)(x)
+    end
+    convertToFunction(expr::Cosine, var::Variable) = begin
+        x -> cos(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Negation, var::Variable) = begin
+        x -> -convertToFunction(expr.element, var)(x)
+    end
+    convertToFunction(expr::Abs, var::Variable) = begin
+        x -> abs(convertToFunction(expr.argument, var)(x))
     end
 
     evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
