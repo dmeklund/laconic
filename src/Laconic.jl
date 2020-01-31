@@ -26,6 +26,7 @@ module Laconic
     include("system.jl")
     include("display.jl")
     include("spin.jl")
+    include("samples.jl")
 
     export MatrixType, VectorType, is_unitary, commutator
 end

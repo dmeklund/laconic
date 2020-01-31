@@ -84,7 +84,12 @@ module Calculus
         result
     end
 
+    function integralidentity(r1::Variable, r2::Variable)
+        t = Variable("t")
+        2/sqrt(pi) * DefiniteIntegral(t, 0, Inf, Exponential(-t^2*(r1-r2)^2))
+    end
+
     export Variable, DefiniteIntegral, convertToFunction, evaluateIntegral
     export positionfunc
-    export evalexpr
+    export evalexpr, integralidentity
 end

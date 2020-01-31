@@ -11,8 +11,11 @@ module SamplesM
         N2 = 10
         mass2 = 1
         basis1 = DiscreteMomentumBasis(N1, a, mass1)
+        pos1 = positionoperator(basis1)
         basis2 = DiscreteMomentumBasis(N2, a, mass2)
+        pos2 = positionoperator(basis2)
         basis = kron(basis1, basis2)
+        pos = kron(pos1, pos2)
     end
 
     export two_electron

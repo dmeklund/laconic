@@ -132,8 +132,13 @@ end
 Base.size(basis::DiscreteMomentumBasis) = basis.N
 Base.size(basis::DiscretePositionBasis) = basis.N
 
+struct CombinedBasis{T <: Tuple} <: AbstractBasis
+    bases::T
+end
 
-export Basis, AbstractBasis
+LinearAlgebra.kron(bases...) = CombinedBasis(bases)
+
+export Basis, AbstractBasis, CombinedBasis
 export AbstractOperator
 export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
