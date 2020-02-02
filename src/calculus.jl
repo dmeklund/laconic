@@ -16,7 +16,10 @@ module Calculus
         integrand::T3
     end
 
-    function evaluateIntegral(integral::DefiniteIntegral)
+    Base.show(io::IO, integral::DefiniteIntegral) = print(io, "∫_$(integral.startpoint)^$(integral.endpoint) d$(integral.variable) $(integral.integrand)")
+
+    function evaluateintegral(integral::DefiniteIntegral)
+        println("Evaluating $(integral)")
         integrandFunction = convertToFunction(integral.integrand, integral.variable)
         quadgk(integrandFunction, integral.startpoint, integral.endpoint)[1]
     end
@@ -36,7 +39,18 @@ module Calculus
         startpoint = convertToFunction(integral.startpoint, var)
         endpoint = convertToFunction(integral.endpoint, var)
         integrand = convertToFunction(integral.integrand, var)
-        x -> evaluateIntegral(DefiniteIntegral(integral.variable, startpoint(x), endpoint(x), integrand(x)))
+        newintegral = x -> DefiniteIntegral(integral.variable, startpoint(x), endpoint(x), integrand(x))
+        function (x)
+            result = newintegral(x)
+            # FIXME: sloppy way of handling this (evaluating the integral when
+            # possible, otherwise just returning it as a definite integral)
+            try
+                evaluateintegral(result)
+            catch err
+                isa(err, MethodError) || rethrow(err)
+                result
+            end
+        end
     end
     convertToFunction(expr::Power, var::Variable) where {T} = begin
         x -> convertToFunction(expr.x, var)(x) ^ convertToFunction(expr.y, var)(x)
@@ -62,6 +76,9 @@ module Calculus
     end
     convertToFunction(expr::Abs, var::Variable) = begin
         x -> abs(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Exponential, var::Variable) = begin
+        x -> exp(convertToFunction(expr.argument, var)(x))
     end
 
     evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
@@ -89,7 +106,7 @@ module Calculus
         2/sqrt(pi) * DefiniteIntegral(t, 0, Inf, Exponential(-t^2*(r1-r2)^2))
     end
 
-    export Variable, DefiniteIntegral, convertToFunction, evaluateIntegral
+    export Variable, DefiniteIntegral, convertToFunction, evaluateintegral
     export positionfunc
     export evalexpr, integralidentity
 end

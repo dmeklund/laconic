@@ -1,3 +1,5 @@
+using Laconic.Symbolic
+
 import LinearAlgebra
 
 abstract type AbstractBasis end
@@ -138,11 +140,15 @@ end
 
 LinearAlgebra.kron(bases...) = CombinedBasis(bases)
 
+function psix(basis::DiscreteMomentumBasis, n::Integer, x::Variable)
+    sqrt(2/basis.a) * Sine(n*pi*x/basis.a)
+end
+
 export Basis, AbstractBasis, CombinedBasis
 export AbstractOperator
 export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
 export DiscretePositionBasis, DiscreteMomentumBasis
 export createDiscreteBasis
-export xgrid, createpos
+export xgrid, psix, createpos
 export getstate

@@ -1,5 +1,5 @@
 module Symbolic
-    using Laconic: Basis, MatrixType
+    using Laconic: MatrixType
     import LinearAlgebra
     using LinearAlgebra: I
 
@@ -83,6 +83,7 @@ module Symbolic
             invoke(Exponential, Tuple{AbstractExpression}, expr)
         end
     end
+    Base.exp(expr::AbstractExpression) = Exponential(expr)
 
 
     struct Product{T <: Tuple} <: AbstractExpression{T}
@@ -178,6 +179,7 @@ module Symbolic
     Base.:+(first::NAryAddition, second::NAryAddition) = NAryAddition(first.elements..., second.elements...)
     Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = NAryAddition(first, second)
     Base.:+(first::Number, second::AbstractExpression) = Numeric(first) + second
+    Base.:+(first::AbstractExpression, second::Number) = first + Numeric(second)
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
 

@@ -19,8 +19,8 @@ module Laconic
     MatrixType{T} = AbstractArray{T, 2}
     VectorType{T} = AbstractArray{T, 1}
 
-    include("basis.jl")
     include("Symbolic.jl")
+    include("basis.jl")
     include("operator.jl")
     include("calculus.jl")
     include("system.jl")
