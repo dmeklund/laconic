@@ -4,6 +4,7 @@ module SamplesM
     using Laconic.Symbolic
     using Laconic.Calculus
     using Laconic
+    using Cubature
 
     using SparseArrays
 
@@ -36,10 +37,22 @@ module SamplesM
                         psix2p = psix(basis2, n2p, x2)
                         inversedist = integralidentity(x1, x2)
                         t = Variable("t")
-                        integral = DefiniteIntegral(t, 0, Inf, DefiniteIntegral(x1, 0, a, DefiniteIntegral(x2, 0, a,
-                            psix1 * psix2 * psix1p * psix2p * 2/sqrt(pi) * Exponential(-t^2*(x1-x2)^2))))
-                        coeff = evaluateintegral(integral)
-                        hamiltonian[row,col] = coeff
+                        # integral = DefiniteIntegral(t, 0, Inf, DefiniteIntegral(x1, 0, a, DefiniteIntegral(x2, 0, a,
+                        #    psix1 * psix2 * psix1p * psix2p * 2/sqrt(pi) * Exponential(-t^2*(x1-x2)^2))))
+                        # integral = makefinite(integral)
+                        w = DefiniteIntegral(x1, 0, a, DefiniteIntegral(x2, 0, a,
+                            psix1 * psix2 * psix1p * psix2p * 2/sqrt(pi) * Exponential(-t^2*(x1-x2)^2)
+                        ))
+                        println(w)
+                        t_lin = 2
+                        t_log = 1e4
+                        part1 = DefiniteIntegral(t, 0, t_lin, w)
+                        part2 = DefiniteIntegral(t, log(t_lin), log(t_log), w * exp(t))
+                        part3 = pi/t_log^2
+                        eval1 = evaluateintegral(part1)
+                        eval2 = evaluateintegral(part2)
+                        # coeff = evaluateintegral(integral)
+                        # hamiltonian[row,col] = coeff
                     end
                 end
             end

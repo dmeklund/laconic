@@ -48,6 +48,7 @@ module Calculus
                 evaluateintegral(result)
             catch err
                 isa(err, MethodError) || rethrow(err)
+                println("Integration failed, continuing")
                 result
             end
         end
@@ -106,7 +107,39 @@ module Calculus
         2/sqrt(pi) * DefiniteIntegral(t, 0, Inf, Exponential(-t^2*(r1-r2)^2))
     end
 
+    makefinite(expr::AbstractExpression) = expr
+
+    function makefinite(integral::DefiniteIntegral)
+        if integral.endpoint == Inf
+            t = Variable("t0")
+            f = convertToFunction(
+                integral.integrand,
+                integral.variable
+            )
+            if integral.startpoint == -Inf && integral.endpoint == Inf
+                DefiniteIntegral(
+                    t,
+                    -1,
+                    1,
+                    f(t/(1-t)^2) * (1+t^2)/(1-t^2)^2
+                )
+            elseif isfinite(integral.startpoint) && integral.endpoint == Inf
+                a = integral.startpoint
+                DefiniteIntegral(
+                    t,
+                    0,
+                    1,
+                    f(a + t/(1-t)) / (1-t)^2
+                )
+            end
+        elseif isfinite(integral.startpoint) && isfinite(integral.endpoint)
+            integral
+        else
+            error("Case not currently handled: $(integral))")
+        end
+    end
+
     export Variable, DefiniteIntegral, convertToFunction, evaluateintegral
     export positionfunc
-    export evalexpr, integralidentity
+    export evalexpr, integralidentity, makefinite
 end
