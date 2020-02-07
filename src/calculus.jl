@@ -5,9 +5,10 @@ calculus:
 - Date: 2019-12-26
 =#
 module Calculus
-    using QuadGK
     using Laconic
     using Laconic.Symbolic
+    using Cubature
+    using QuadGK
 
     struct DefiniteIntegral{T1, T2, T3} <: AbstractExpression{Tuple{T1,T2,T3}}
         variable::Variable
@@ -16,14 +17,51 @@ module Calculus
         integrand::T3
     end
 
+    struct DefiniteIntegralN{N, T1, T2, T3} <: AbstractExpression{Tuple{T1,T2,T3}}
+        vars::NTuple{N,Variable}
+        startpoints::NTuple{N,T1}
+        endpoints::NTuple{N,T2}
+        integrand::T3
+    end
+
+    collapseintegrals(integral::DefiniteIntegral{T1, T2, DefiniteIntegral{T3,T4,T5}}) where {T1, T2, T3, T4, T5} = begin
+        collapseintegrals(DefiniteIntegralN(
+            (integral.variable, integral.integrand.variable),
+            (integral.startpoint, integral.integrand.startpoint),
+            (integral.endpoint, integral.integrand.endpoint),
+            integral.integrand.integrand
+        ))
+    end
+    collapseintegrals(integral::DefiniteIntegralN{N, T1, T2, DefiniteIntegral{T3,T4,T5}}) where {N, T1, T2, T3, T4, T5} = begin
+        collapseintegrals(DefiniteIntegralN(
+            (integral.vars..., integral.integrand.variable),
+            (integral.startpoints..., integral.integrand.startpoint),
+            (integral.endpoints..., integral.integrand.endpoint),
+            integral.integrand.integrand
+        ))
+    end
+    collapseintegrals(integral::DefiniteIntegral) where {T1,T2,T3} = integral
+    collapseintegrals(integral::DefiniteIntegralN) = integral
+
     Base.show(io::IO, integral::DefiniteIntegral) = print(io, "∫_$(integral.startpoint)^$(integral.endpoint) d$(integral.variable) $(integral.integrand)")
 
-    function evaluateintegral(integral::DefiniteIntegral)
+    evaluateintegral(integral::DefiniteIntegral) = begin
         println("Evaluating $(integral)")
         integrandFunction = convertToFunction(integral.integrand, integral.variable)
         quadgk(integrandFunction, integral.startpoint, integral.endpoint)[1]
     end
+    evaluateintegral(integral::DefiniteIntegralN) = begin
+        integrandfunction = convertToFunction(integral.integrand, integral.vars...)
+        println("Evaluating $(integral.integrand)")
+        hcubature(integrandfunction, integral.startpoints, integral.endpoints, reltol=1e-4)[1]
+    end
 
+    convertToFunction(input, var1::Variable, var2::Variable) = begin
+        (x) -> convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2])
+    end
+    convertToFunction(input, var1::Variable, var2::Variable, var3::Variable) = begin
+        (x) -> convertToFunction(convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2]), var3)(x[3])
+    end
     convertToFunction(input, variable::Variable) = x -> input
     convertToFunction(input::Variable, var::Variable) = begin
         if input == var
@@ -139,7 +177,7 @@ module Calculus
         end
     end
 
-    export Variable, DefiniteIntegral, convertToFunction, evaluateintegral
+    export Variable, DefiniteIntegral, DefiniteIntegralN, convertToFunction, evaluateintegral
     export positionfunc
-    export evalexpr, integralidentity, makefinite
+    export evalexpr, integralidentity, makefinite, collapseintegrals
 end
