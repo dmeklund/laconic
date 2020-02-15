@@ -53,7 +53,7 @@ module Calculus
     evaluateintegral(integral::DefiniteIntegralN) = begin
         integrandfunction = convertToFunction(integral.integrand, integral.vars...)
         println("Evaluating $(integral.integrand)")
-        hcubature(integrandfunction, integral.startpoints, integral.endpoints, reltol=1e-4)[1]
+        pcubature(integrandfunction, integral.startpoints, integral.endpoints, reltol=1e-4, abstol=1e-4)[1]
     end
 
     convertToFunction(input, var1::Variable, var2::Variable) = begin

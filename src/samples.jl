@@ -6,8 +6,6 @@ module SamplesM
     using Laconic
     using Cubature
 
-    using Distributed
-    using SharedArrays
     using SparseArrays
 
     function two_electron()
@@ -24,7 +22,7 @@ module SamplesM
         pos = kron(pos1, pos2)
         # TODO: figure out how to represent this as an Operator
         N = N1*N2
-        hamiltonian = SharedArray{Float64}(N, N)
+        hamiltonian = zeros(N, N)
         for n1=1:N1
             for n2=1:N2
                 for n1p=1:N1
