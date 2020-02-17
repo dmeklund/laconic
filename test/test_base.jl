@@ -10,9 +10,9 @@ function exercise2_1()
         for psi in (0, pi/4, pi)
             inc = increment(theta, psi)
             dec = decrement(theta, psi)
-            @assert dot(inc, dec) ≈ 0
-            @assert dot(inc, inc) ≈ 1
-            @assert dot(dec, dec) ≈ 1
+            @assert dot(inc, dec) ≈ 0 "$(dot(inc, dec)) !≈ 0"
+            @assert dot(inc, inc) ≈ 1 "$(dot(inc, inc)) !≈ 1"
+            @assert dot(dec, dec) ≈ 1 "$(dot(dec, dec)) !≈ 1"
             xform = hcat(inc, dec)
             basisIncDec = Basis{ComplexF64}(
                 "IncDec",
