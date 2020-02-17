@@ -56,8 +56,9 @@ module Gaussian
     end
 
     function amplitude(bf::PrimitiveGaussianBasisFunction, point)
+        delta = point .- bf.origin
         r2 = dist2(point, bf.origin)
-        return bf.normcoeff * prod(r2 .^ bf.powers) * exp(-bf.exponent*r2)
+        return bf.normcoeff * prod(delta .^ bf.powers) * exp(-bf.exponent*r2)
     end
 
     function binomial_prefactor(s::Int64, ia::Int64, ib::Int64, xpa::Float64, xpb::Float64)
@@ -72,20 +73,20 @@ module Gaussian
 
     factorial2(n::Int64) = prod(n:-2:1)
 
-    struct ContractedGaussianBasisFunction{N}
-        powers::NTuple{3, Int64}
-        origin::NTuple{3, Float64}
+    struct ContractedGaussianBasisFunction{N, M}
+        powers::NTuple{N, Int64}
+        origin::NTuple{N, Float64}
         normcoeff::Float64
-        pgbfs::NTuple{N, PrimitiveGaussianBasisFunction}
-        coeffs::NTuple{N, Float64}
+        pgbfs::NTuple{M, PrimitiveGaussianBasisFunction}
+        coeffs::NTuple{M, Float64}
     end
 
     function ContractedGaussianBasisFunction(
-            powers,
-            origin,
-            pgbfs,
-            coeffs
-    )
+            powers::NTuple{N,Int64},
+            origin::NTuple{N,Float64},
+            pgbfs::NTuple{M, PrimitiveGaussianBasisFunction},
+            coeffs::NTuple{M, Float64}
+    ) where {N, M}
         cgbf = ContractedGaussianBasisFunction(
             powers,
             origin,
@@ -101,6 +102,19 @@ module Gaussian
             pgbfs,
             coeffs
         )
+    end
+
+    function ContractedGaussianBasisFunction(
+            powers::NTuple{N,Int64},
+            origin::NTuple{N,Float64},
+            exponentsAndCoeffs::Tuple{Float64,Float64}...
+    ) where {N}
+        pgbfs = tuple(
+            (PrimitiveGaussianBasisFunction(exponent, powers, origin)
+             for (exponent, coeff) in exponentsAndCoeffs)...
+         )
+        coeffs = tuple((coeff for (exponent, coeff) in exponentsAndCoeffs)...)
+        ContractedGaussianBasisFunction(powers, origin, pgbfs, coeffs)
     end
 
     cgbfnorm(cgbf::ContractedGaussianBasisFunction) = sqrt(overlap(cgbf, cgbf))
@@ -119,7 +133,14 @@ module Gaussian
         return a.normcoeff * b.normcoeff * result
     end
 
+    function amplitude(
+            bf::ContractedGaussianBasisFunction{N,M},
+            point::NTuple{N, Float64}
+    ) where {N, M}
+        s = sum(c*amplitude(pbf, point) for (c, pbf) in primitives(bf))
+        bf.normcoeff * s
+    end
 
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction
-    export amplitude
+    export amplitude, overlap
 end
