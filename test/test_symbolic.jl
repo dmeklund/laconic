@@ -10,7 +10,7 @@ function exercise2_1()
     increment(theta, phi) = [
         Cosine(theta/Numeric(2)),
          Exponential(Numeric(im)*phi)*Sine(theta/Numeric(2))
-     ]
+    ]
     decrement(theta, phi) = [
         -Exponential(Numeric(-im)*phi)*Sine(theta/Numeric(2)),
         Cosine(theta/Numeric(2))
