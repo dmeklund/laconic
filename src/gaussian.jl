@@ -27,20 +27,38 @@ module Gaussian
         a::PrimitiveGaussianBasisFunction,
         b::PrimitiveGaussianBasisFunction
     )
-        gamma = a.exponent + b.exponent
-        porigin = gaussianproductcenter(a.exponent, a.origin, b.exponent, b.origin)
-        rab2 = dist2(a.origin, b.origin)
-        pre = (pi/gamma)^1.5 * exp(-a.exponent*b.exponent*rab2/gamma)
+        a.normcoeff * b.normcoeff * overlap(
+            a.exponent,
+            a.powers,
+            a.origin,
+            b.exponent,
+            b.powers,
+            b.origin
+        )
+    end
+
+    function overlap(
+            exponent1,
+            powers1,
+            origin1,
+            exponent2,
+            powers2,
+            origin2,
+    )
+        gamma = exponent1 + exponent2
+        porigin = gaussianproductcenter(exponent1, origin1, exponent2, origin2)
+        rab2 = dist2(origin1, origin2)
+        pre = (pi/gamma)^1.5 * exp(-exponent1*exponent2*rab2/gamma)
         overlaps = (
             overlap1d(
-                a.powers[ind],
-                b.powers[ind],
-                porigin[ind]-a.origin[ind],
-                porigin[ind]-b.origin[ind],
+                powers1[ind],
+                powers2[ind],
+                porigin[ind] - origin1[ind],
+                porigin[ind] - origin2[ind],
                 gamma)
             for ind=1:3
         )
-        a.normcoeff * b.normcoeff * pre * prod(overlaps)
+        pre * prod(overlaps)
     end
 
     function gaussianproductcenter(expn1, center1, expn2, center2)
@@ -141,6 +159,47 @@ module Gaussian
         bf.normcoeff * s
     end
 
+    function kinetic(
+            pgbf1::PrimitiveGaussianBasisFunction{N},
+            pgbf2::PrimitiveGaussianBasisFunction{N}
+    ) where N
+        overlap0 = overlap(
+            pgbf1.exponent,
+            pgbf1.powers,
+            pgbf1.origin,
+            pgbf2.exponent,
+            pgbf2.powers,
+            pgbf2.origin
+        )
+        term0 = pgbf2.exponent * (2 * sum(pgbf2.powers) + 3) * overlap0
+        term1 = 0.
+        term2 = 0.
+        for ind=1:N
+            term1 += -2 * (pgbf2.exponent^2) * overlap(
+                pgbf1.exponent,
+                pgbf1.powers,
+                pgbf1.origin,
+                pgbf2.exponent,
+                (pgbf2.powers[1:ind-1]..., pgbf2.powers[ind]+2, pgbf2.powers[ind+1:end]...),
+                pgbf2.origin
+            )
+            term2 += -0.5 * pgbf2.powers[ind] * (pgbf2.powers[ind]-1) * overlap(
+                pgbf1.exponent,
+                pgbf1.powers,
+                pgbf1.origin,
+                pgbf2.exponent,
+                (pgbf2.powers[1:ind-1]..., pgbf2.powers[ind]-2, pgbf2.powers[ind+1:end]...),
+                pgbf2.origin
+            )
+        end
+        pgbf1.normcoeff * pgbf2.normcoeff * (term0 + term1 + term2)
+    end
+
+    kinetic(
+            a::ContractedGaussianBasisFunction,
+            b::ContractedGaussianBasisFunction
+    ) = contract(kinetic, a, b)
+
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction
-    export amplitude, overlap
+    export amplitude, overlap, kinetic
 end
