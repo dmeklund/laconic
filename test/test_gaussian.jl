@@ -26,8 +26,6 @@ function test_cgbf()
 end
 test_cgbf()
 
-
-
 function test_kinetic()
     s = PrimitiveGaussianBasisFunction(1.0)
     c = ContractedGaussianBasisFunction((0,0,0), (0.0,0.0,0.0), (1.0, 1.0))
@@ -37,3 +35,24 @@ function test_kinetic()
     @assert isapprox(kinetic(c,c),1.5) "$(kinetic(c,c)) !≈ 1.5"
 end
 test_kinetic()
+
+using Laconic.Gaussian: fB, B0, fact_ratio2, Bterm
+function test_two_terms()
+    @assert fB(0,0,0,0.0,0.0,0.0,0,2.0) == 1
+    @assert fB(0,0,0,1.0,1.0,1.0,0,2.0) == 1
+    @assert fB(0,0,0,0.0,0.0,0.0,0,2.0 ) == 1
+    @assert fB(1,0,1,0.0,0.0,0.0,0,2.0 ) == 0.125
+    @assert B0(0,0,2.0) == 1
+    @assert fact_ratio2(0,0) == 1
+    @assert Bterm(0,0,0,0,0,0,0,0,0,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,0.25)==1
+    @assert Bterm(0,1,0,0,0,0,0,0,1,0.0,0.0,0.0,0.0,0.0,0.0,2.0,2.0,0.25)==0
+end
+test_two_terms()
+
+function test_coul1()
+    s = PrimitiveGaussianBasisFunction(1.0)
+    px = PrimitiveGaussianBasisFunction(1.0, (1,0,0), (0.,0.,0.))
+    @assert coulomb(s,s,s,px)==0 # 0
+    @assert isapprox(coulomb(s,s,px,px), 0.9403159725793305 )
+end
+test_coul1()
