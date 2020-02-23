@@ -56,21 +56,8 @@ module Calculus
         pcubature(integrandfunction, integral.startpoints, integral.endpoints, reltol=1e-4, abstol=1e-4)[1]
     end
 
-    convertToFunction(input, var1::Variable, var2::Variable) = begin
-        (x) -> convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2])
-    end
-    convertToFunction(input, var1::Variable, var2::Variable, var3::Variable) = begin
-        (x) -> convertToFunction(convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2]), var3)(x[3])
-    end
-    convertToFunction(input, variable::Variable) = x -> input
-    convertToFunction(input::Variable, var::Variable) = begin
-        if input == var
-            x -> x
-        else
-            x -> input
-        end
-    end
-    convertToFunction(integral::DefiniteIntegral, var::Variable) = begin
+
+    Laconic.Symbolic.convertToFunction(integral::DefiniteIntegral, var::Variable) = begin
         if var == integral.variable
             error("Cannot make integral a function of the variable it's integrating over")
         end
@@ -91,36 +78,6 @@ module Calculus
             end
         end
     end
-    convertToFunction(expr::Power, var::Variable) where {T} = begin
-        x -> convertToFunction(expr.x, var)(x) ^ convertToFunction(expr.y, var)(x)
-    end
-    convertToFunction(num::Numeric, var::Variable) = x -> num.value
-    convertToFunction(expr::Product, var::Variable) = begin
-        x -> prod(convertToFunction(item, var)(x) for item in expr.elements)
-    end
-    convertToFunction(expr::NAryAddition, var::Variable) = begin
-        x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
-    end
-    convertToFunction(expr::Sine, var::Variable) = begin
-        x -> sin(convertToFunction(expr.argument, var)(x))
-    end
-    convertToFunction(expr::Division, var::Variable) = begin
-        x -> convertToFunction(expr.numerator, var)(x) / convertToFunction(expr.denominator, var)(x)
-    end
-    convertToFunction(expr::Cosine, var::Variable) = begin
-        x -> cos(convertToFunction(expr.argument, var)(x))
-    end
-    convertToFunction(expr::Negation, var::Variable) = begin
-        x -> -convertToFunction(expr.element, var)(x)
-    end
-    convertToFunction(expr::Abs, var::Variable) = begin
-        x -> abs(convertToFunction(expr.argument, var)(x))
-    end
-    convertToFunction(expr::Exponential, var::Variable) = begin
-        x -> exp(convertToFunction(expr.argument, var)(x))
-    end
-
-    evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
 
     # TODO: move me somewhere else
 
@@ -177,7 +134,7 @@ module Calculus
         end
     end
 
-    export Variable, DefiniteIntegral, DefiniteIntegralN, convertToFunction, evaluateintegral
+    export Variable, DefiniteIntegral, DefiniteIntegralN, evaluateintegral
     export positionfunc
     export evalexpr, integralidentity, makefinite, collapseintegrals
 end

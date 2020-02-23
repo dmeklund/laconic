@@ -1,5 +1,7 @@
 # based off pyquante2
 module Gaussian
+    using Laconic
+    using Laconic.Symbolic
     using SpecialFunctions
 
     function dist2(point1::NTuple{N,Float64}, point2::NTuple{N,Float64}) where N
@@ -11,6 +13,10 @@ module Gaussian
         powers::NTuple{N, Int64}
         origin::NTuple{N, Float64}
         normcoeff::Float64
+    end
+
+    function Laconic.symbolic(pgbf::PrimitiveGaussianBasisFunction{N}, x::NTuple{N,Variable}) where N
+        pgbf.normcoeff * prod(x .^ pgbf.powers) * exp(-pgbf.exponent * sum((x .- pgbf.origin).^2))
     end
 
     function PrimitiveGaussianBasisFunction(
@@ -40,13 +46,13 @@ module Gaussian
     end
 
     function overlap(
-            exponent1,
-            powers1,
-            origin1,
-            exponent2,
-            powers2,
-            origin2,
-    )
+            exponent1::Float64,
+            powers1::NTuple{N,Int64},
+            origin1::NTuple{N,Float64},
+            exponent2::Float64,
+            powers2::NTuple{N,Int64},
+            origin2::NTuple{N,Float64},
+    ) where N
         gamma = exponent1 + exponent2
         porigin = gaussianproductcenter(exponent1, origin1, exponent2, origin2)
         rab2 = dist2(origin1, origin2)
@@ -58,7 +64,7 @@ module Gaussian
                 porigin[ind] - origin1[ind],
                 porigin[ind] - origin2[ind],
                 gamma)
-            for ind=1:3
+            for ind=1:N
         )
         pre * prod(overlaps)
     end
@@ -99,6 +105,10 @@ module Gaussian
         normcoeff::Float64
         pgbfs::NTuple{M, PrimitiveGaussianBasisFunction}
         coeffs::NTuple{M, Float64}
+    end
+
+    function Laconic.symbolic(cgbf::ContractedGaussianBasisFunction{N}, vars::NTuple{N,Variable}) where N
+        cgbf.normcoeff * sum(symbolic(pgbf, vars) for pgbf in cgbf.pgbfs)
     end
 
     function ContractedGaussianBasisFunction(
@@ -432,6 +442,37 @@ module Gaussian
             b::Int64
     ) = factorial(a) * factorial(b) / factorial(a-2b)
 
+    struct GaussianBasis{N} <: AbstractBasis
+        cgbfs::NTuple{N, ContractedGaussianBasisFunction}
+    end
+
+    function GaussianBasis(a::Float64, N::Int64)
+        cgbfs = ((ContractedGaussianBasisFunction(
+            (0,),
+            (ind/(N*a),),
+            (PrimitiveGaussianBasisFunction(
+                (N/a)^2,
+                (0,),
+                (ind/(N*a),),
+            ),),
+            (1.0,))
+            for ind=1:N)...,
+        )
+        GaussianBasis(cgbfs)
+    end
+
+    function Laconic.kineticenergyoperator(basis::GaussianBasis{N}) where N
+        matrix = zeros(N, N)
+        for ind1=1:N
+            for ind2=1:ind1
+                matrix[ind1, ind2] = kinetic(basis.cgbfs[ind1], basis.cgbfs[ind2])
+                matrix[ind2, ind1] = matrix[ind1, ind2]
+            end
+        end
+        Operator("kineticenergy", matrix, basis)
+    end
+
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction
-    export amplitude, overlap, kinetic, coulomb
+    export amplitude, overlap, kinetic, coulomb, symbolic
+    export GaussianBasis
 end

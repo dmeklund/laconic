@@ -171,6 +171,8 @@ module Symbolic
     end
     Base.abs(argument::T) where T <: AbstractExpression = Abs(argument)
 
+    Base.:*(obj::AbstractExpression) = obj
+    Base.:+(obj::AbstractExpression) = obj
     Base.:*(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Product(first, second)
     Base.:*(first::Number, second::T) where {T <: AbstractExpression} = Numeric(first) * second
     Base.:*(first::T, second::Number) where {T <: AbstractExpression} = first * Numeric(second)
@@ -183,6 +185,7 @@ module Symbolic
     Base.:-(first::Number, second::AbstractExpression) = Numeric(first) - second
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
+    Base.:-(first::AbstractExpression, second::Number) = first - Numeric(second)
 
     LinearAlgebra.inv(expr::Array{T,2}) where {T <: AbstractExpression} = Inversion{T}(expr)
     Base.size(expr::Inversion{T}) where T = size(expr.element)
@@ -293,6 +296,52 @@ module Symbolic
         combineterms.(product) == I
     end
 
+    convertToFunction(input, var1::Variable, var2::Variable) = begin
+        (x) -> convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2])
+    end
+    convertToFunction(input, var1::Variable, var2::Variable, var3::Variable) = begin
+        (x) -> convertToFunction(convertToFunction(convertToFunction(input, var1)(x[1]), var2)(x[2]), var3)(x[3])
+    end
+    convertToFunction(input, variable::Variable) = x -> input
+    convertToFunction(input::Variable, var::Variable) = begin
+        if input == var
+            x -> x
+        else
+            x -> input
+        end
+    end
+
+    convertToFunction(expr::Power, var::Variable) where {T} = begin
+        x -> convertToFunction(expr.x, var)(x) ^ convertToFunction(expr.y, var)(x)
+    end
+    convertToFunction(num::Numeric, var::Variable) = x -> num.value
+    convertToFunction(expr::Product, var::Variable) = begin
+        x -> prod(convertToFunction(item, var)(x) for item in expr.elements)
+    end
+    convertToFunction(expr::NAryAddition, var::Variable) = begin
+        x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
+    end
+    convertToFunction(expr::Sine, var::Variable) = begin
+        x -> sin(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Division, var::Variable) = begin
+        x -> convertToFunction(expr.numerator, var)(x) / convertToFunction(expr.denominator, var)(x)
+    end
+    convertToFunction(expr::Cosine, var::Variable) = begin
+        x -> cos(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Negation, var::Variable) = begin
+        x -> -convertToFunction(expr.element, var)(x)
+    end
+    convertToFunction(expr::Abs, var::Variable) = begin
+        x -> abs(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Exponential, var::Variable) = begin
+        x -> exp(convertToFunction(expr.argument, var)(x))
+    end
+
+    evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
+
     export AbstractStatement, AbstractExpression
     export Variable
     export Equals, BinaryAddition, NAryAddition
@@ -301,4 +350,5 @@ module Symbolic
     export Sine, Cosine
     export Negation, Abs
     export combineterms, is_unitary
+    export convertToFunction
 end

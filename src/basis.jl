@@ -110,6 +110,19 @@ struct DiscretePositionBasis <: AbstractBasis
     mass::Real
 end
 
+function symbolic(basis::DiscretePositionBasis, n::Int64, var::Variable)
+    mombasis = DiscreteMomentumBasis(basis.N, basis.a, basis.mass)
+    result = 0
+    delta = basis.a/(basis.N+1)
+    x_n = n * delta
+    for ind=1:basis.N
+        psiind = symbolic(mombasis, ind, var)
+        func = convertToFunction(psiind, var)
+        result = result + func(x_n) * psiind
+    end
+    sqrt(delta) * result
+end
+
 function xgrid(basis::DiscretePositionBasis)
     Array(1:basis.N) * basis.a / (basis.N + 1)
 end
@@ -134,6 +147,10 @@ end
 Base.size(basis::DiscreteMomentumBasis) = basis.N
 Base.size(basis::DiscretePositionBasis) = basis.N
 
+function symbolic(basis::DiscreteMomentumBasis, n::Int64, var::Variable)
+    sqrt(2/basis.a) * Sine(n * pi * var / basis.a)
+end
+
 struct CombinedBasis{T <: Tuple} <: AbstractBasis
     bases::T
 end
@@ -152,3 +169,4 @@ export DiscretePositionBasis, DiscreteMomentumBasis
 export createDiscreteBasis
 export xgrid, psix, createpos
 export getstate
+export symbolic

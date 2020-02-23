@@ -1,6 +1,7 @@
 module SystemM
     using Laconic
     using Laconic.Calculus
+    using Laconic.Gaussian
     using Laconic.Symbolic
     using LinearAlgebra
     using DifferentialEquations
@@ -76,10 +77,11 @@ module SystemM
         mass = 1.0
         cutoff = 150
         elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
-        basis = DiscretePositionBasis(cutoff, a, mass)
+        # basis = DiscretePositionBasis(cutoff, a, mass)
+        basis = GaussianBasis(a, cutoff)
         kineticEnergy = kineticenergyoperator(basis)
-        xop = positionoperator(basis) # x operator in the momentum basis
-        hamiltonian = kineticEnergy + xop
+        # xop = positionoperator(basis) # x operator in the momentum basis
+        hamiltonian = kineticEnergy #+ xop
         # hamiltonian = xop
         # psi0 = zeros(Complex{Float64}, cutoff)
         # psi0[:] = eigen(hamiltonian.matrix).vectors[:,1] + (rand(80).-.5)* .1

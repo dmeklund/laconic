@@ -21,8 +21,8 @@ module Laconic
 
     include("Symbolic.jl")
     include("basis.jl")
-    include("gaussian.jl")
     include("operator.jl")
+    include("gaussian.jl")
     include("calculus.jl")
     include("system.jl")
     include("display.jl")
