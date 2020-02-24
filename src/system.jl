@@ -75,7 +75,7 @@ module SystemM
     function test_solver()
         a = 30.0
         mass = 1.0
-        cutoff = 150
+        cutoff = 100
         elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
         # basis = DiscretePositionBasis(cutoff, a, mass)
         basis = GaussianBasis(a, cutoff)

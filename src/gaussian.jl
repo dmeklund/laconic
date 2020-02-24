@@ -449,11 +449,11 @@ module Gaussian
     function GaussianBasis(a::Float64, N::Int64)
         cgbfs = ((ContractedGaussianBasisFunction(
             (0,),
-            (ind/(N*a),),
+            (ind*a/N,),
             (PrimitiveGaussianBasisFunction(
-                (N/a)^2,
+                3*(N/a)^2,
                 (0,),
-                (ind/(N*a),),
+                (ind*a/N,),
             ),),
             (1.0,))
             for ind=1:N)...,
