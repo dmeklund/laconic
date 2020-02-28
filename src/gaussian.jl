@@ -163,6 +163,27 @@ module Gaussian
         return a.normcoeff * b.normcoeff * result
     end
 
+    function contract(
+            f,
+            a::ContractedGaussianBasisFunction,
+            b::ContractedGaussianBasisFunction,
+            c::ContractedGaussianBasisFunction,
+            d::ContractedGaussianBasisFunction
+    )
+        s = 0
+        for (ca, abf) in primitives(a)
+            for (cb, bbf) in primitives(b)
+                for (cc, cbf) in primitives(c)
+                    for (cd, dbf) in primitives(d)
+                        s += ca*cb*cc*cd*f(abf,bbf,cbf,dbf)
+                    end
+                end
+            end
+        end
+        return a.normcoeff * b.normcoeff * c.normcoeff * d.normcoeff * s
+    end
+
+
     function amplitude(
             bf::ContractedGaussianBasisFunction{N,M},
             point::NTuple{N, Float64}
@@ -263,6 +284,13 @@ module Gaussian
         end
         return pgbf1.normcoeff*pgbf2.normcoeff*pgbf3.normcoeff*pgbf4.normcoeff*2pi^(2.5)/(g1*g2*sqrt(g1+g2))*exp(-pgbf1.exponent*pgbf2.exponent*r122/g1)*exp(-pgbf3.exponent*pgbf4.exponent*r342/g2)*s
     end
+
+    coulomb(
+            a::ContractedGaussianBasisFunction,
+            b::ContractedGaussianBasisFunction,
+            c::ContractedGaussianBasisFunction,
+            d::ContractedGaussianBasisFunction
+    ) = contract(coulomb, a, b, c, d)
 
     function Fgamma(m::Int64,x::Float64,SMALL::Float64=1e-12)
         #println("Fgamma($m,$x)")
@@ -472,7 +500,33 @@ module Gaussian
         Operator("kineticenergy", matrix, basis)
     end
 
+    function coulomboperator(basis::CombinedBasis{Tuple{GaussianBasis{N1}, GaussianBasis{N2}}}) where {N1, N2}
+        basis1 = basis.bases[1]
+        basis2 = basis.bases[2]
+        N = N1*N2
+        matrix = zeros(N,N)
+        for ind1=1:N1
+            for ind2=1:N2
+                for ind3=1:N1
+                    for ind4=1:N2
+                        row = ind1 + N1*(ind2-1)
+                        col = ind3 + N1*(ind4-1)
+                        val = coulomb(
+                            basis1.cgbfs[ind1],
+                            basis2.cgbfs[ind2],
+                            basis1.cgbfs[ind3],
+                            basis2.cgbfs[ind4]
+                        )
+                        matrix[row, col] = val
+                    end
+                end
+            end
+        end
+        Operator("coulomb", matrix, basis)
+    end
+
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction
     export amplitude, overlap, kinetic, coulomb, symbolic
     export GaussianBasis
+    export coulomboperator
 end

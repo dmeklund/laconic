@@ -166,6 +166,7 @@ export AbstractOperator
 export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
 export DiscretePositionBasis, DiscreteMomentumBasis
+export CombinedBasis
 export createDiscreteBasis
 export xgrid, psix, createpos
 export getstate

@@ -76,7 +76,7 @@ module SystemM
         a = 30.0
         mass = 1.0
         cutoff = 100
-        elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
+        # elements = Array(1:cutoff).^2 * pi^2 * hbar^2 / (2 * mass * a^2)
         # basis = DiscretePositionBasis(cutoff, a, mass)
         basis = GaussianBasis(a, cutoff)
         kineticEnergy = kineticenergyoperator(basis)
@@ -94,6 +94,30 @@ module SystemM
         psi0 = normalize(exp.(-((xgrid .- x0) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
         tspan = (0., 100.)
         sol = solve_system(hamiltonian.matrix, basis, psi0, tspan)
+        return sol
+    end
+
+    function two_particle()
+        a = 30.0
+        mass1 = mass2 = 1.0
+        cutoff = 10
+        basis1 = GaussianBasis(a, cutoff)
+        basis2 = GaussianBasis(a, cutoff)
+        combined_basis = kron(basis1, basis2)
+        kinenergy1 = kineticenergyoperator(basis1)
+        kinenergy2 = kineticenergyoperator(basis2)
+        kinenergy = kron(kinenergy1, kinenergy2)
+        repulsion = coulomboperator(combined_basis)
+        hamiltonian = kinenergy + repulsion
+        x1 = 5.
+        x2 = 15.
+        sigma = 1.0
+        xgrid = Vector(1:cutoff) * a / (cutoff + 1)
+        psi1 = normalize(exp.(-((xgrid .- x1) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
+        psi2 = normalize(exp.(-((xgrid .- x2) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
+        psi = kron(psi1, psi2)
+        tspan = (0., 100.)
+        sol = solve_system(hamiltonian.matrix, combined_basis, psi, tspan)
         return sol
     end
 
@@ -120,4 +144,5 @@ module SystemM
     end
 
     export test_solver, apply_at_time, propagator
+    export two_particle
 end
