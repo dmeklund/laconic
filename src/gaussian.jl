@@ -474,6 +474,8 @@ module Gaussian
         cgbfs::NTuple{N, ContractedGaussianBasisFunction}
     end
 
+    Base.length(basis::GaussianBasis{N}) where N = N
+
     function GaussianBasis(a::Float64, N::Int64)
         cgbfs = ((ContractedGaussianBasisFunction(
             (0,),
@@ -523,6 +525,10 @@ module Gaussian
             end
         end
         Operator("coulomb", matrix, basis)
+    end
+
+    function Laconic.symbolic(basis::GaussianBasis, n::Int64, var::Variable)
+        symbolic(basis.cgbfs[n], (var,))
     end
 
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction

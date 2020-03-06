@@ -136,5 +136,5 @@ module Calculus
 
     export Variable, DefiniteIntegral, DefiniteIntegralN, evaluateintegral
     export positionfunc
-    export evalexpr, integralidentity, makefinite, collapseintegrals
+    export integralidentity, makefinite, collapseintegrals
 end

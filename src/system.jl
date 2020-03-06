@@ -56,10 +56,10 @@ module SystemM
         end
     end
 
-    struct TimeDependentSolution
+    struct TimeDependentSolution{T <: AbstractBasis}
         tvals::Vector{Float64}
         coeffs::Matrix{Complex{Float64}}
-        basis::AbstractBasis
+        basis::T
         odesol
     end
 
@@ -145,4 +145,5 @@ module SystemM
 
     export test_solver, apply_at_time, propagator
     export two_particle
+    export TimeDependentSolution
 end

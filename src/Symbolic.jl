@@ -312,14 +312,18 @@ module Symbolic
     end
 
     convertToFunction(expr::Power, var::Variable) where {T} = begin
-        x -> convertToFunction(expr.x, var)(x) ^ convertToFunction(expr.y, var)(x)
+        x -> convertToFunction(expr.x, var)(x) .^ convertToFunction(expr.y, var)(x)
     end
     convertToFunction(num::Numeric, var::Variable) = x -> num.value
     convertToFunction(expr::Product, var::Variable) = begin
-        x -> prod(convertToFunction(item, var)(x) for item in expr.elements)
+        # need to use broadcast(*, ...) instead of prod(...) so that things like
+        # "x * 3" work when x is a vector
+        x -> broadcast(*, (convertToFunction(item, var)(x) for item in expr.elements)...)
     end
     convertToFunction(expr::NAryAddition, var::Variable) = begin
-        x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
+        # need to use broadcast(+, ...) instead of sum(...) so that things like
+        # "x * 3" work when x is a vector
+        x -> broadcast(+, (convertToFunction(item, var)(x) for item in expr.elements)...)
     end
     convertToFunction(expr::Sine, var::Variable) = begin
         x -> sin(convertToFunction(expr.argument, var)(x))
@@ -337,7 +341,7 @@ module Symbolic
         x -> abs(convertToFunction(expr.argument, var)(x))
     end
     convertToFunction(expr::Exponential, var::Variable) = begin
-        x -> exp(convertToFunction(expr.argument, var)(x))
+        x -> exp.(convertToFunction(expr.argument, var)(x))
     end
 
     evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
@@ -350,5 +354,5 @@ module Symbolic
     export Sine, Cosine
     export Negation, Abs
     export combineterms, is_unitary
-    export convertToFunction
+    export convertToFunction, evalexpr
 end
