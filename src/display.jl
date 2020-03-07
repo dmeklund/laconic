@@ -11,17 +11,10 @@ module DisplayM
         @manipulate for t=trange
             p = plot()
             for func in func_list
-                plot!(p, xrange, func_list[1](t))
+                plot!(p, xrange, func(t))
             end
             p
         end
-    end
-
-    function sliderforsoln(soln::TimeDependentSolution)
-        createSlider(
-            range(soln.tvals[1], soln.tvals[end], length=500),
-            [t->abs2.(soln.odesol(t))]
-        )
     end
 
     function singlebasis(basis, n, t)
@@ -35,16 +28,26 @@ module DisplayM
         )
     end
 
+    function sliderforsoln(soln::TimeDependentSolution, xrange)
+        var = Variable("x")
+        basis = soln.basis
+        func = t -> abs.(evalexpr(
+            symbolic(soln, t, var),
+            var,
+            xrange
+        ))
+        tvals = range(soln.tvals[1], soln.tvals[end], length=500)
+        createSlider(tvals, xrange, (func,))
+    end
+
     function sliderforsoln(soln::TimeDependentSolution{CombinedBasis{T}}, xrange) where T
         var = Variable("x")
         funclist = ((
-            t -> abs2.(sum(
-                evalexpr(
-                    symbolic(basis, n, var),
-                    var,
-                    xrange
-                ) * soln.odesol(t)[n] for n=length(basis)
-            )) for basis in soln.basis.bases
+            t -> abs2.(evalexpr(
+                symbolic(soln, basisind, t, var),
+                var,
+                xrange
+            )) for basisind=1:length(soln.basis.bases)
         )...,)
         tvals = range(soln.tvals[1], soln.tvals[end], length=500)
         createSlider(tvals, xrange, funclist)

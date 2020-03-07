@@ -63,6 +63,16 @@ module SystemM
         odesol
     end
 
+    function Laconic.symbolic(soln::TimeDependentSolution, t::Float64, var::Variable)
+        coeffs = soln.odesol(t)
+        sum(coeffs[n] * symbolic(soln.basis, n, var) for n=1:length(soln.basis))
+    end
+
+    function Laconic.symbolic(soln::TimeDependentSolution{CombinedBasis{T}}, basisind::Int, t::Float64, var::Variable) where {T}
+        coeffs = soln.odesol(t)
+        sum(coeffs[m] * symbolic(soln.basis, m, basisind, var) for m=1:length(soln.basis))
+    end
+
     function solve_system(hamiltonian, basis, psi0, tspan)
         function func!(dpsi, psi, p, t)
             dpsi[:] = 1/(im*hbar) * (hamiltonian * psi)
@@ -108,7 +118,7 @@ module SystemM
         kinenergy2 = kineticenergyoperator(basis2)
         kinenergy = kron(kinenergy1, kinenergy2)
         repulsion = coulomboperator(combined_basis)
-        hamiltonian = kinenergy + repulsion
+        hamiltonian = kinenergy # + repulsion
         x1 = 5.
         x2 = 15.
         sigma = 1.0

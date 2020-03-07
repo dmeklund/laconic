@@ -481,7 +481,7 @@ module Gaussian
             (0,),
             (ind*a/N,),
             (PrimitiveGaussianBasisFunction(
-                3*(N/a)^2,
+                (N/a)^2,
                 (0,),
                 (ind*a/N,),
             ),),

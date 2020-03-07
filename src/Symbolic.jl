@@ -42,9 +42,9 @@ module Symbolic
     end
     Base.show(io::IO, expr::NAryAddition) = join(io, expr.elements, "+")
     NAryAddition(elem1, elem2) = begin
-        if combineterms(elem1) == combineterms(-elem2)
-            Numeric(0)
-        elseif elem1 == 0
+        #if combineterms(elem1) == combineterms(-elem2)
+        #    Numeric(0)
+        if elem1 == 0
             elem2
         elseif elem2 == 0
             elem1

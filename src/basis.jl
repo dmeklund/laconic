@@ -155,6 +155,38 @@ struct CombinedBasis{T <: Tuple} <: AbstractBasis
     bases::T
 end
 
+function shape(basis::CombinedBasis)
+    ((length(b) for b in basis.bases)...,)
+end
+
+Base.length(basis::CombinedBasis) = prod(shape(basis))
+
+"""
+    Laconic.symbolic(
+            basis::CombinedBasis,
+            funcind::Integer,
+            basisind::Integer,
+            var::Variable
+    )
+
+Return a symbolic representation of the `funcind` basis function (representing
+the corresponding index in a state vector) in the `basisind` basis.
+"""
+function Laconic.symbolic(
+        basis::CombinedBasis,
+        funcind::Integer,
+        basisind::Integer,
+        var::Variable
+)
+    # what we're doing here is essentially unraveling a flattened index over
+    # some n-dimensional array. for a given basis, we need to figure out which
+    # basis function represents that combined index "funcind"
+    ci = CartesianIndices(shape(basis))
+    inds = ci[funcind]
+    symbolic(basis.bases[basisind], inds[basisind], var)
+end
+
+
 LinearAlgebra.kron(bases...) = CombinedBasis(bases)
 
 function psix(basis::DiscreteMomentumBasis, n::Integer, x::Variable)
