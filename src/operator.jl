@@ -56,6 +56,9 @@ function LinearAlgebra.kron(op1::Operator, op2::Operator)
         kron(op1.basis, op2.basis)
     )
 end
+function LinearAlgebra.identity(basis::AbstractBasis)
+    Operator("I", sparse(I, length(basis), length(basis)), basis)
+end
 
 struct State{T}
     vector::Vector{T}

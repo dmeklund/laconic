@@ -507,12 +507,13 @@ module Gaussian
         basis2 = basis.bases[2]
         N = N1*N2
         matrix = zeros(N,N)
+        linind = LinearIndices((1:N1, 1:N2))
         for ind1=1:N1
             for ind2=1:N2
                 for ind3=1:N1
                     for ind4=1:N2
-                        row = ind1 + N1*(ind2-1)
-                        col = ind3 + N1*(ind4-1)
+                        row = linind[ind1, ind2]
+                        col = linind[ind3, ind4]
                         val = coulomb(
                             basis1.cgbfs[ind1],
                             basis2.cgbfs[ind2],
