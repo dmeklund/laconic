@@ -19,6 +19,12 @@ module Symbolic
     end
     Base.show(io::IO, var::Variable) = print(io, var.label)
     parenthesize(io::IO, var::Variable) = print(io, var)
+    # some Julia magic to make broadcasting work with our Variable type
+    Base.length(var::AbstractExpression) = 1
+    Base.iterate(var::AbstractExpression) = (var, nothing)
+    Base.iterate(var::AbstractExpression, ::Any) = nothing
+    Base.IteratorSize(::Type{<:AbstractExpression}) = Base.HasShape{0}()
+    Base.size(x::AbstractExpression) = ()
 
     struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
         value::T
@@ -85,6 +91,14 @@ module Symbolic
     end
     Base.exp(expr::AbstractExpression) = Exponential(expr)
 
+    struct Max{T1, T2} <: AbstractExpression{Tuple{T1, T2}}
+        arg1::T1
+        arg2::T2
+    end
+    Base.max(arg1::AbstractExpression, arg2::AbstractExpression) = Max(arg1, arg2)
+    Base.max(arg1::AbstractExpression, arg2::Number) = Max(arg1, Numeric(arg2))
+    Base.max(arg1::Number, arg2::AbstractExpression) = Max(Numeric(arg1), arg2)
+    Base.show(io::IO, expr::Max) = print(io, "max(", expr.arg1, ", ", expr.arg2, ")")
 
     struct Product{T <: Tuple} <: AbstractExpression{T}
         elements::T
@@ -342,6 +356,9 @@ module Symbolic
     end
     convertToFunction(expr::Exponential, var::Variable) = begin
         x -> exp.(convertToFunction(expr.argument, var)(x))
+    end
+    convertToFunction(expr::Max, var::Variable) = begin
+        x -> max(convertToFunction(expr.arg1, var)(x), convertToFunction(expr.arg2, var)(x))
     end
 
     evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)

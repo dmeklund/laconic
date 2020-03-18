@@ -53,7 +53,7 @@ module Calculus
     evaluateintegral(integral::DefiniteIntegralN) = begin
         integrandfunction = convertToFunction(integral.integrand, integral.vars...)
         println("Evaluating $(integral.integrand)")
-        pcubature(integrandfunction, integral.startpoints, integral.endpoints, reltol=1e-4, abstol=1e-4)[1]
+        pcubature(integrandfunction, integral.startpoints, integral.endpoints)[1]
     end
 
 
@@ -137,4 +137,5 @@ module Calculus
     export Variable, DefiniteIntegral, DefiniteIntegralN, evaluateintegral
     export positionfunc
     export integralidentity, makefinite, collapseintegrals
+    export convertToFunction
 end

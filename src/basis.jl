@@ -161,6 +161,15 @@ end
 
 Base.length(basis::CombinedBasis) = prod(shape(basis))
 
+function project(basis::CombinedBasis, basisind::Int64, statevec::Vector)
+    result = zeros(length(basis.bases[basisind]))
+    linind = LinearIndices(shape(basis))
+    for ind=CartesianIndices(shape(basis))
+        result[ind[basisind]] += statevec[linind[ind]]
+    end
+    result
+end
+
 """
     Laconic.symbolic(
             basis::CombinedBasis,
@@ -199,7 +208,7 @@ export MomentumBasis, MomentumSquaredOperator, MomentumEigenstate
 export PositionOperator
 export DiscretePositionBasis, DiscreteMomentumBasis
 export CombinedBasis
-export createDiscreteBasis
+export createDiscreteBasis, shape, project
 export xgrid, psix, createpos
 export getstate
 export symbolic

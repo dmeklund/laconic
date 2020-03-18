@@ -512,12 +512,12 @@ module Gaussian
             for ind2=1:N2
                 for ind3=1:N1
                     for ind4=1:N2
-                        row = linind[ind1, ind2]
-                        col = linind[ind3, ind4]
+                        row = linind[ind2, ind1]
+                        col = linind[ind4, ind3]
                         val = coulomb(
                             basis1.cgbfs[ind1],
-                            basis2.cgbfs[ind2],
                             basis1.cgbfs[ind3],
+                            basis2.cgbfs[ind2],
                             basis2.cgbfs[ind4]
                         )
                         matrix[row, col] = val

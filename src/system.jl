@@ -98,11 +98,11 @@ module SystemM
         # psi0 /= sum(psi0 .* psi0)
         # println(psi0)
         # psi0[10] = 1.0
-        x0 = 15
+        x0 = 10.
         sigma = 1.0
         xgrid = Vector(1:cutoff) * a / (cutoff + 1)
         psi0 = normalize(exp.(-((xgrid .- x0) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
-        tspan = (0., 100.)
+        tspan = (0., 30.)
         sol = solve_system(hamiltonian.matrix, basis, psi0, tspan)
         return sol
     end
@@ -118,16 +118,16 @@ module SystemM
         kinenergy2 = kron(identity(basis1), kineticenergyoperator(basis2))
         kinenergy = kinenergy1 + kinenergy2
         repulsion = coulomboperator(combined_basis)
-        hamiltonian = repulsion # .1*kinenergy + repulsion
-        x1 = 14.
-        x2 = 16.
+        hamiltonian = kinenergy + repulsion
+        x1 = 10.
+        x2 = 20.
         sigma = 1.0
-        xgrid = Vector(1:cutoff) * a / (cutoff + 1)
-        psi1 = normalize(exp.(-((xgrid .- x1) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
-        psi2 = normalize(exp.(-((xgrid .- x2) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
+        xgrid1 = Vector(1:cutoff) * a / (cutoff + 1)
+        psi1 = normalize(exp.(-((xgrid1 .- x1) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
+        psi2 = normalize(exp.(-((xgrid1 .- x2) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
         psi = kron(psi1, psi2)
-        tspan = (0., 10.)
-        sol = solve_system(-hamiltonian.matrix, combined_basis, psi, tspan)
+        tspan = (0., 30.)
+        sol = solve_system(hamiltonian.matrix, combined_basis, psi, tspan)
         return sol
     end
 
