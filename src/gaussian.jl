@@ -318,7 +318,7 @@ module Gaussian
 
     function gser(a::Float64,x::Float64,ITMAX::Int64=100,EPS::Float64=3e-9)
         # Series representation of Gamma. NumRec sect 6.1.
-        gln=lgamma(a)
+        gln = (logabsgamma(x))[1]
         if x == 0
             return 0,gln
         end
@@ -337,7 +337,7 @@ module Gaussian
 
     function gcf(a::Float64,x::Float64,ITMAX::Int64=200,EPS::Float64=3e-9,FPMIN::Float64=1e-30)
         #Continued fraction representation of Gamma. NumRec sect 6.1"
-        gln=lgamma(a)
+        gln = (logabsgamma(x))[1]
         b=x + 1. - a
         c=1. / FPMIN
         d=1. / b

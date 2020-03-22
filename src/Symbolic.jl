@@ -173,6 +173,7 @@ module Symbolic
     end
     Negation(expr::Numeric{T}) where T = Numeric(-expr.value)
     Negation(expr::Negation) = expr.element
+    Negation(expr::Product) = Product(-expr.elements[1], expr.elements[2:end]...)
     Base.:(==)(lhs::Negation, rhs::Negation) = lhs.element == rhs.element
     Base.conj(expr::Negation) = Negation(conj(expr.element))
     Base.show(io::IO, expr::Negation{T}) where T = print(io, "-", expr.element)
@@ -244,16 +245,15 @@ module Symbolic
         val2 + val1
     end
 
-    function combineterms(expr::Negation{Product{T}}) where T
-        combineterms(Product(-expr.element.elements[1], expr.element.elements[2:end]...))
-    end
+    # function combineterms(expr::Negation{Product{T}}) where T
+    #     combineterms(Product(-expr.element.elements[1], expr.element.elements[2:end]...))
+    # end
 
     function combineterms(expr::Product{T}) where T
         elements_copy = [combineterms(element) for element in expr.elements]
         sort!(elements_copy, by=repr)
         for (ind1, elem1) in enumerate(elements_copy)
-            if isa(elem1, Negation) && ind1 != 1
-                elements_copy[1] = -elements_copy[1]
+            if isa(elem1, Negation)
                 elements_copy[ind1] = elem1.element
                 return Negation(combineterms(Product(elements_copy...)))
             end
@@ -280,8 +280,8 @@ module Symbolic
             end
         end
         # sort!(elements_copy)
-        # Product(elements_copy...)
-        expr
+        Product(elements_copy...)
+        # expr
     end
     function combineterms(expr::NAryAddition{T}) where T
         elements_copy = [expr.elements...] |> Array{AbstractExpression,1}
@@ -298,12 +298,8 @@ module Symbolic
         end
         NAryAddition(elements_copy...)
     end
-    function combineterms(expr::Exponential)
-        Exponential(expr.argument)
-    end
-    function combineterms(expr)
-        expr
-    end
+    combineterms(expr::Exponential) = Exponential(combineterms(expr.argument))
+    combineterms(expr) = expr
 
     function is_unitary(matrix::MatrixType{T}) where {T}
         product = matrix * conj(transpose(matrix))

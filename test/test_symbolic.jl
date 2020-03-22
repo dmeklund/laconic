@@ -1,6 +1,6 @@
-import Laconic.Symbolic: Cosine, Exponential, Numeric, Sine, Cosine, AbstractExpression, SSymbol
-import Laconic.Symbolic: Basis, combineterms, is_unitary
-import Laconic: MatrixType
+using Laconic
+using Laconic.Symbolic
+using LinearAlgebra
 
 function exercise2_1()
     state_up = Vector([1, 0])
@@ -9,10 +9,10 @@ function exercise2_1()
     phi = SSymbol("ϕ")
     increment(theta, phi) = [
         Cosine(theta/Numeric(2)),
-         Exponential(Numeric(im)*phi)*Sine(theta/Numeric(2))
+         Exponential(Numeric(1.0im)*phi)*Sine(theta/Numeric(2))
     ]
     decrement(theta, phi) = [
-        -Exponential(Numeric(-im)*phi)*Sine(theta/Numeric(2)),
+        -Exponential(Numeric(-1.0im)*phi)*Sine(theta/Numeric(2)),
         Cosine(theta/Numeric(2))
     ]
     basisUpDown = Basis{AbstractExpression}("UpDown", 2, ("up", "down"))
