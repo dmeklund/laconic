@@ -325,7 +325,7 @@ module Symbolic
         end
     end
 
-    convertToFunction(expr::Power, var::Variable) where {T} = begin
+    convertToFunction(expr::Power, var::Variable) = begin
         x -> convertToFunction(expr.x, var)(x) .^ convertToFunction(expr.y, var)(x)
     end
     convertToFunction(num::Numeric, var::Variable) = x -> num.value

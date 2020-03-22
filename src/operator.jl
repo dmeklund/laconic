@@ -2,7 +2,7 @@ using SparseArrays
 # using Laconic.Calculus
 import FFTW
 
-struct Operator{T1,T2} <: AbstractOperator where {T2 <: AbstractBasis}
+struct Operator{T1, T2 <: AbstractBasis} <: AbstractOperator
     name::String
     matrix::MatrixType{T1}
     basis::T2

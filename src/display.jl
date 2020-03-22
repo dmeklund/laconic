@@ -17,14 +17,14 @@ module DisplayM
         end
     end
 
-    function singlebasis(basis, n, t)
+    function singlebasis(basis::AbstractBasis, n, t)
         var = Variable("x")
         sum(
             evalexpr(
                 symbolic(basis, n, var),
                 var,
                 t
-            ) for n=length(basis)
+            ) for n=1:length(basis)
         )
     end
 
@@ -64,7 +64,7 @@ module DisplayM
         p
     end
 
-    function showbasisfunctions(basis::DiscretePositionBasis, range) where N
+    function showbasisfunctions(basis::DiscretePositionBasis, range)
         x = Variable("x")
         p = plot()
         for ind=1:basis.N

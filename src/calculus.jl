@@ -40,7 +40,7 @@ module Calculus
             integral.integrand.integrand
         ))
     end
-    collapseintegrals(integral::DefiniteIntegral) where {T1,T2,T3} = integral
+    collapseintegrals(integral::DefiniteIntegral) = integral
     collapseintegrals(integral::DefiniteIntegralN) = integral
 
     Base.show(io::IO, integral::DefiniteIntegral) = print(io, "∫_$(integral.startpoint)^$(integral.endpoint) d$(integral.variable) $(integral.integrand)")

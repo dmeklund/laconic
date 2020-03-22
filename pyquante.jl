@@ -154,7 +154,7 @@ struct Molecule
 end
 
 function push!(mol::Molecule,at::Atom)
-    Base.push!(atomlist,at)
+    Base.push!(mol.atomlist, at)
 end
 
 tobohr(x::Float64) = x/0.52918
