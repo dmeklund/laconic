@@ -1,8 +1,9 @@
 module SystemM
-    using Laconic
-    using Laconic.Calculus
-    using Laconic.Gaussian
-    using Laconic.Symbolic
+    using ...Laconic
+    using ..Calculus
+    using ..Gaussian
+    using ..Symbolic
+    
     using LinearAlgebra
     using DifferentialEquations
     using SparseArrays

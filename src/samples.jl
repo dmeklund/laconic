@@ -1,9 +1,8 @@
 module SamplesM
-    using Laconic.SystemM
-    using Laconic.DisplayM
-    using Laconic.Symbolic
-    using Laconic.Calculus
-    using Laconic
+    using ..SystemM
+    using ..DisplayM
+    using ..Symbolic
+    using ..Calculus
     using Cubature
 
     using SparseArrays

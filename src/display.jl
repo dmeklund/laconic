@@ -1,5 +1,5 @@
 module DisplayM
-    using Laconic
+    using ...Laconic
     using Laconic.Gaussian
     using Laconic.Calculus
     using Laconic.Symbolic

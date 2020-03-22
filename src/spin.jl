@@ -1,8 +1,7 @@
 module SpinM
+    using ...Laconic
     import LinearAlgebra: transpose
     import SparseArrays: sparse
-    import Laconic: Basis, MatrixType, Operator, VectorType
-
     struct Spin
         spin::Rational
         function Spin(spin::Rational)

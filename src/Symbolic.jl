@@ -1,5 +1,5 @@
 module Symbolic
-    using Laconic: MatrixType
+    using ...Laconic: MatrixType
     import LinearAlgebra
     using LinearAlgebra: I
 
@@ -365,7 +365,7 @@ module Symbolic
 
     export AbstractStatement, AbstractExpression
     export Variable
-    export Equals, BinaryAddition, NAryAddition
+    export Equals, NAryAddition
     export Numeric, SSymbol
     export Product, Exponential, Division, Power
     export Sine, Cosine

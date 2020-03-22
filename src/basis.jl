@@ -20,7 +20,7 @@ struct Basis{T} <: AbstractBasis
             basisToXform::AbstractDict{Basis{T},MatrixType{T}}
     ) where {T}
         if !isnothing(colnames) && length(colnames) != ndims
-            error("Length mismatch: $(length(colname)) != $(ndims)")
+            error("Length mismatch: $(length(colnames)) != $(ndims)")
         end
         new{T}(name, ndims, colnames, basisToXform)
     end
