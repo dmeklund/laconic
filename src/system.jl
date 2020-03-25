@@ -111,7 +111,7 @@ module SystemM
     function two_particle()
         a = 30.0
         mass1 = mass2 = 1.0
-        cutoff = 20
+        cutoff = 40
         basis1 = GaussianBasis(a, cutoff)
         basis2 = GaussianBasis(a, cutoff)
         combined_basis = kron(basis1, basis2)
