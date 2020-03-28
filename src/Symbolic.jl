@@ -194,6 +194,8 @@ module Symbolic
     Base.:/(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Division(first, second)
     Base.:/(first::T, second::Number) where {T <: AbstractExpression} = first / Numeric(second)
     Base.:+(first::NAryAddition, second::NAryAddition) = NAryAddition(first.elements..., second.elements...)
+    Base.:+(first::AbstractExpression, second::NAryAddition) = NAryAddition(first, second.elements...)
+    Base.:+(first::NAryAddition, second::AbstractExpression) = NAryAddition(first.elements..., second)
     Base.:+(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = NAryAddition(first, second)
     Base.:+(first::Number, second::AbstractExpression) = Numeric(first) + second
     Base.:+(first::AbstractExpression, second::Number) = first + Numeric(second)

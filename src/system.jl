@@ -128,6 +128,7 @@ module SystemM
         psi2 = normalize(exp.(-((xgrid1 .- x2) ./ (2*sigma)).^2)) |> Vector{ComplexF64}
         psi = kron(psi1, psi2)
         tspan = (0., 30.)
+        mat = hamiltonian.matrix
         sol = solve_system(hamiltonian.matrix, combined_basis, psi, tspan)
         return sol
     end

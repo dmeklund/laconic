@@ -2,6 +2,7 @@
 module Gaussian
     using Laconic
     using Laconic.Symbolic
+    using SparseArrays
     using SpecialFunctions
 
     function dist2(point1::NTuple{N,Float64}, point2::NTuple{N,Float64}) where N
@@ -508,7 +509,7 @@ module Gaussian
         basis1 = basis.bases[1]
         basis2 = basis.bases[2]
         N = N1*N2
-        matrix = zeros(N,N)
+        matrix = spzeros(N,N)
         linind = LinearIndices((1:N1, 1:N2))
         for ind1=1:N1
             for ind2=1:N2
@@ -522,7 +523,9 @@ module Gaussian
                             basis2.cgbfs[ind2],
                             basis2.cgbfs[ind4]
                         )
-                        matrix[row, col] = val
+                        if abs(val) > 1e-10
+                            matrix[row, col] = val
+                        end
                     end
                 end
             end
