@@ -53,7 +53,10 @@ module DisplayM
         createSlider(tvals, xrange, funclist)
     end
 
-    function plotattime(p, soln::TimeDependentSolution{CombinedBasis{T}}, time, xrange) where T
+    function plotattime(soln::TimeDependentSolution{CombinedBasis{T}}, time, xrange, p=nothing) where T
+        if isnothing(p)
+            p = plot()
+        end
         var = Variable("x")
         for basisind=1:length(soln.basis.bases)
             plot!(
@@ -66,6 +69,7 @@ module DisplayM
                 ))
             )
         end
+        p
     end
 
     function showbasisfunctions(basis::GaussianBasis{N}, range) where N

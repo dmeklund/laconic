@@ -326,7 +326,7 @@ module Symbolic
     convertToFunction(expr::Power, var::Variable) = begin
         x -> convertToFunction(expr.x, var)(x) .^ convertToFunction(expr.y, var)(x)
     end
-    convertToFunction(num::Numeric, var::Variable) = x -> num.value
+    convertToFunction(num::Numeric, var::Variable) = x -> zeros(size(x)) .+ num.value
     convertToFunction(expr::Product, var::Variable) = begin
         # need to use broadcast(*, ...) instead of prod(...) so that things like
         # "x * 3" work when x is a vector
@@ -334,19 +334,22 @@ module Symbolic
     end
     convertToFunction(expr::NAryAddition, var::Variable) = begin
         # need to use broadcast(+, ...) instead of sum(...) so that things like
-        # "x * 3" work when x is a vector
+        # "x + 3" work when x is a vector
         
         # this implementation creates a stack overflow in compilation for
         # long expr.elements tuples
+
         # x -> broadcast(+, (convertToFunction(item, var)(x) for item in expr.elements)...)
+        
         # workaround:
-        x -> begin
-            result = 0.0
-            for item in expr.elements
-                result = result .+ convertToFunction(item, var)(x)
-            end
-            result
-        end
+        # x -> begin
+        #     result = 0.0
+        #     for item in expr.elements
+        #         result = result .+ convertToFunction(item, var)(x)
+        #     end
+        #     result
+        # end
+        x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
     end
     convertToFunction(expr::Sine, var::Variable) = begin
         x -> sin(convertToFunction(expr.argument, var)(x))
