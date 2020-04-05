@@ -13,6 +13,7 @@ module Symbolic
     LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
     Base.zero(expr::AbstractExpression) = Numeric(0)
+    Base.adjoint(expr::AbstractExpression) = conj(expr)
 
     struct Variable <: AbstractExpression{Tuple{}}
         label::String
