@@ -333,44 +333,28 @@ module Symbolic
         x -> broadcast(*, (convertToFunction(item, var)(x) for item in expr.elements)...)
     end
     convertToFunction(expr::NAryAddition, var::Variable) = begin
-        # need to use broadcast(+, ...) instead of sum(...) so that things like
-        # "x + 3" work when x is a vector
-        
-        # this implementation creates a stack overflow in compilation for
-        # long expr.elements tuples
-
-        # x -> broadcast(+, (convertToFunction(item, var)(x) for item in expr.elements)...)
-        
-        # workaround:
-        # x -> begin
-        #     result = 0.0
-        #     for item in expr.elements
-        #         result = result .+ convertToFunction(item, var)(x)
-        #     end
-        #     result
-        # end
         x -> sum(convertToFunction(item, var)(x) for item in expr.elements)
     end
     convertToFunction(expr::Sine, var::Variable) = begin
-        x -> sin(convertToFunction(expr.argument, var)(x))
+        x -> sin.(convertToFunction(expr.argument, var)(x))
     end
     convertToFunction(expr::Division, var::Variable) = begin
-        x -> convertToFunction(expr.numerator, var)(x) / convertToFunction(expr.denominator, var)(x)
+        x -> convertToFunction(expr.numerator, var)(x) ./ convertToFunction(expr.denominator, var)(x)
     end
     convertToFunction(expr::Cosine, var::Variable) = begin
-        x -> cos(convertToFunction(expr.argument, var)(x))
+        x -> cos.(convertToFunction(expr.argument, var)(x))
     end
     convertToFunction(expr::Negation, var::Variable) = begin
         x -> -convertToFunction(expr.element, var)(x)
     end
     convertToFunction(expr::Abs, var::Variable) = begin
-        x -> abs(convertToFunction(expr.argument, var)(x))
+        x -> abs.(convertToFunction(expr.argument, var)(x))
     end
     convertToFunction(expr::Exponential, var::Variable) = begin
         x -> exp.(convertToFunction(expr.argument, var)(x))
     end
     convertToFunction(expr::Max, var::Variable) = begin
-        x -> max(convertToFunction(expr.arg1, var)(x), convertToFunction(expr.arg2, var)(x))
+        x -> max.(convertToFunction(expr.arg1, var)(x), convertToFunction(expr.arg2, var)(x))
     end
 
     evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
