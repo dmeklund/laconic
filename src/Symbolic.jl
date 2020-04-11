@@ -186,7 +186,7 @@ module Symbolic
         argument::T
     end
     Base.abs(argument::T) where T <: AbstractExpression = Abs(argument)
-    Base.show(io::IO, expr::Abs) = print(io, "|", expr.argument, "|")
+    Base.show(io::IO, expr::Abs) = print(io, "abs(", expr.argument, ")")
 
     struct Sqrt{T} <: AbstractExpression{Tuple{T}}
         argument::T
