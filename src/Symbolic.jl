@@ -186,6 +186,15 @@ module Symbolic
         argument::T
     end
     Base.abs(argument::T) where T <: AbstractExpression = Abs(argument)
+    Base.show(io::IO, expr::Abs) = print(io, "|", expr.argument, "|")
+
+    struct Sqrt{T} <: AbstractExpression{Tuple{T}}
+        argument::T
+    end
+    Base.sqrt(argument::AbstractExpression) = Sqrt(argument)
+    Base.show(io::IO, expr::Sqrt) = print(io, "sqrt(", expr.argument, ")")
+    convertToFunction(expr::Sqrt, var::Variable) = x -> sqrt(convertToFunction(expr.argument, var)(x))
+
 
     Base.:*(obj::AbstractExpression) = obj
     Base.:+(obj::AbstractExpression) = obj

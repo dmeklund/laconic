@@ -109,7 +109,7 @@ module Gaussian
     end
 
     function Laconic.symbolic(cgbf::ContractedGaussianBasisFunction{N}, vars::NTuple{N,Variable}) where N
-        cgbf.normcoeff * sum(symbolic(pgbf, vars) for pgbf in cgbf.pgbfs)
+        cgbf.normcoeff * sum(coeff * symbolic(pgbf, vars) for (coeff, pgbf) in zip(cgbf.coeffs, cgbf.pgbfs))
     end
 
     function ContractedGaussianBasisFunction(

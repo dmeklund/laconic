@@ -28,6 +28,7 @@ module Laconic
     include("display.jl")
     include("spin.jl")
     include("samples.jl")
+    include("atom.jl")
 
     export MatrixType, VectorType, commutator
 end
