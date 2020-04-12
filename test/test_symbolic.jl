@@ -24,9 +24,7 @@ function exercise2_1()
     @assert combineterms(dot(inc, conj(inc))) == 1
     @assert combineterms(dot(dec, conj(dec))) == 1
     @assert combineterms(dot(inc, conj(dec))) == 0
-    # @assert dot(inc, conj(inc)) == 1
 
-    # @assert dot(dec, conj(dec)) == 1
     xform = hcat(inc, dec)
     @assert is_unitary(xform)
     basisIncDec = Basis{AbstractExpression}(
@@ -35,12 +33,6 @@ function exercise2_1()
         basisUpDown,
         xform |> MatrixType{AbstractExpression}
     )
-    # # @assert(is_orthonormal(xform))
-    # println(xform)
-    # println(transpose(xform) * xform)
-    # xform
-    # # Cosine(theta / Numeric(2)) * state_up + Exponential(Numeric(im)*phi) * Sine(theta / Numeric(2)) * state_down
-
 end
 
 exercise2_1()

@@ -1,7 +1,7 @@
 module Atom
     using Laconic.Gaussian
 
-    function sto3g(atomno, electronno)
+    function sto3g(atomno::Integer, electronno::Integer)
         if atomno == 1 && electronno == 1
             # 1s orbital
             powers = (0, 0, 0)

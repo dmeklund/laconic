@@ -30,6 +30,15 @@ module Gaussian
         PrimitiveGaussianBasisFunction(exponent, powers, origin, 1.0/norm)
     end
 
+    PrimitiveGaussianBasisFunction(
+        exponent::Float64,
+        N::Integer
+    ) = PrimitiveGaussianBasisFunction(
+        exponent, 
+        ntuple(i->0, N),
+        ntuple(i->0.0, N)
+    )
+
     pgbfnorm(pgbf) = sqrt(overlap(pgbf, pgbf))
 
     function overlap(
@@ -473,6 +482,101 @@ module Gaussian
             b::Int64
     ) = factorial(a) * factorial(b) / factorial(a-2b)
 
+    function nuclear_attraction(
+            pgbf1::PrimitiveGaussianBasisFunction{N},
+            pgbf2::PrimitiveGaussianBasisFunction{N},
+            nuccenter::NTuple{N, Float64}
+    ) where {N}
+        pcenter = gaussianproductcenter(pgbf1.exponent, pgbf1.origin, pgbf2.exponent, pgbf2.origin)
+        gamma = pgbf1.exponent + pgbf2.exponent
+        rab2 = dist2(pgbf1.origin, pgbf2.origin)
+        rcp2 = dist2(nuccenter, pcenter)
+        As = Aarrays(
+            pgbf1.powers, 
+            pgbf2.powers, 
+            pcenter .- pgbf1.origin,
+            pcenter .- pgbf2.origin,
+            pcenter .- nuccenter,
+            gamma
+        )
+        total = 0
+        # e.g., over three dimensions, this is the sum over I, J, K, with 
+        # I=0:(aI+bI), J=0:(aJ+bJ), K=0:(aK+bK), of
+        #   Ax[I+1]*Ay[J+1]*Az[K+1]*Fgamma(I+J+K,rcp2*gamma)
+        for multi=CartesianIndices(((0:pgbf1.powers[ind]+pgbf2.powers[ind] for ind=1:N)...,))
+            total += (
+                prod(As[n][multi[n]+1] for n=1:N)
+                * Fgamma(sum(Tuple(multi)), rcp2*gamma)
+            )
+        end
+        val = (
+            -2pi * pgbf1.normcoeff * pgbf2.normcoeff
+            * exp(-pgbf1.exponent*pgbf2.exponent*rab2/gamma)
+            * total / gamma
+        )
+        return val
+    end
+
+    nuclear_attraction(
+            cgbf1::ContractedGaussianBasisFunction{N,M},
+            cgbf2::ContractedGaussianBasisFunction{N,M},
+            nuccenter::NTuple{N, Float64}
+    ) where {N, M} = contract(
+        (a, b) -> nuclear_attraction(a, b, nuccenter),
+        cgbf1, cgbf2
+    )
+        
+    function Aterm(
+            i::Int64,
+            r::Int64,
+            u::Int64,
+            l1::Int64,
+            l2::Int64,
+            ax::Float64,
+            bx::Float64,
+            cx::Float64,
+            gamma::Float64
+    )
+        term1 = (-1)^(i+u) * binomial_prefactor(i, l1, l2, ax, bx)
+        term2 = factorial(i) * cx^(i - 2r - 2u)
+        term3 = (1/4/gamma)^(r+u)/factorial(r)/factorial(u)/factorial(i-2r-2u)
+        return term1 * term2 * term3
+    end
+    
+    function Aarrays(
+            l1s::NTuple{N, Int64},
+            l2s::NTuple{N, Int64},
+            a::NTuple{N, Float64},
+            b::NTuple{N, Float64},
+            c::NTuple{N, Float64},
+            g::Float64
+    ) where {N}
+        Imax = ((l1 + l2 + 1 for (l1,l2) = zip(l1s, l2s))...,)
+        As = ((zeros(Float64, Imax[n]) for n=1:N)...,)
+        for n=1:N
+            for i=0:(Imax[n] - 1)
+                for r=0:div(i, 2)
+                    for u=0:div(i - 2r, 2)
+                        I = i - 2r - u + 1
+                        As[n][I] += Aterm(
+                            i,
+                            r,
+                            u, 
+                            l1s[n], 
+                            l2s[n], 
+                            a[n], 
+                            b[n], 
+                            c[n], 
+                            g
+                        )
+                    end
+                end
+            end
+        end
+        return As
+    end
+    
+
     struct GaussianBasis{N} <: AbstractBasis
         cgbfs::NTuple{N, ContractedGaussianBasisFunction}
     end
@@ -539,6 +643,7 @@ module Gaussian
 
     export PrimitiveGaussianBasisFunction, ContractedGaussianBasisFunction
     export amplitude, overlap, kinetic, coulomb, symbolic
+    export nuclear_attraction
     export GaussianBasis
     export coulomboperator
 end
