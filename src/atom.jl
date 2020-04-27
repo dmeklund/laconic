@@ -1,5 +1,7 @@
 module Atom
+    using Laconic
     using Laconic.Gaussian
+    using Laconic.Symbolic
 
     function sto3g(atomno::Integer, electronno::Integer)
         if atomno == 1 && electronno == 1
@@ -16,8 +18,21 @@ module Atom
                 ),
                 (0.15432897000000001, 0.53532813999999995, 0.44463454000000002)
             )
+        # else if atomno == 1 && electronno = 
         end
     end
 
-    export sto3g
+    struct SlaterTypeOrbital{N}
+        exponent::Float64
+        power::Float64
+        origin::NTuple{N, Float64}
+        normcoeff::Float64
+    end
+
+    function Laconic.symbolic(orbital::SlaterTypeOrbital, vars::NTuple{N,Variable}) where N
+        sqrt(orbital.exponent^3/pi) * exp(-orbital.exponent * abs(vars .- orbital.origin))
+    end
+
+
+    export sto3g, SlaterTypeOrbital
 end
