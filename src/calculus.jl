@@ -51,9 +51,16 @@ module Calculus
         quadgk(integrandFunction, integral.startpoint, integral.endpoint)[1]
     end
     evaluateintegral(integral::DefiniteIntegralN) = begin
-        integrandfunction = convertToFunction(integral.integrand, integral.vars...)
+        integrandfunction = parseexpr(integral.integrand, integral.vars)
+        # the function returned from parseexpr takes a series of arguments,
+        # but pcubature expects a function that takes a single tuple arg.
+        func = (tup) -> real(integrandfunction(tup...))
         println("Evaluating $(integral.integrand)")
-        pcubature(integrandfunction, integral.startpoints, integral.endpoints)[1]
+        pcubature(func, integral.startpoints, integral.endpoints)[1]
+    end
+
+    function setzero(f::Function, condition::Function)
+        vars -> condition(vars) ? 0 : f(vars)
     end
 
 
@@ -134,8 +141,57 @@ module Calculus
         end
     end
 
+    function deriv(expr::NAryAddition, var::Variable)
+        sum(deriv(element, var) for element in expr.elements)
+    end
+
+    function deriv(expr::Power, var::Variable)
+        # handles x^n but not n^x
+        expr.y * expr.x ^ (expr.y - 1) * deriv(expr.x, var)
+    end
+
+    function deriv(expr::Product, var::Variable)
+        result = 0
+        for (ind, element) in enumerate(expr.elements)
+            result = result + prod(
+                (expr.elements[1:ind-1]..., 
+                deriv(element, var),
+                expr.elements[ind+1:end]...,)
+            )
+        end
+        result
+    end
+
+    deriv(num::Numeric, var::Variable) = 0
+    deriv(num::Number, var::Variable) = 0
+
+    function deriv(expr::Variable, var::Variable) 
+        if expr == var
+            1
+        else
+            0
+        end
+    end
+
+    function deriv(expr::AbstractExpression, var::Variable, times::Int64)
+        result = expr
+        for ind=1:times
+            result = deriv(result, var)
+        end
+        result
+    end
+
+    function deriv(expr::Number, var::Variable, times::Int64)
+        if times == 0
+            expr
+        else
+            0
+        end
+    end
+
     export Variable, DefiniteIntegral, DefiniteIntegralN, evaluateintegral
     export positionfunc
     export integralidentity, makefinite, collapseintegrals
     export convertToFunction
+    export deriv, setzero
 end

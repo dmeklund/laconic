@@ -10,16 +10,19 @@ module Symbolic
         rhs::T2
     end
     parenthesize(io::IO, expr::AbstractExpression) = print(io, "(", expr, ")")
+    parenthesize(io::IO, expr::AbstractStatement) = print(io, "(", expr, ")")
     LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
     Base.zero(expr::AbstractExpression) = Numeric(0)
     Base.adjoint(expr::AbstractExpression) = conj(expr)
-
+    
     struct Variable <: AbstractExpression{Tuple{}}
         label::String
     end
     Base.show(io::IO, var::Variable) = print(io, var.label)
     parenthesize(io::IO, var::Variable) = print(io, var)
+    # FIXME
+    Base.conj(var::Variable) = var
     # some Julia magic to make broadcasting work with our Variable type
     Base.length(var::AbstractExpression) = 1
     Base.iterate(var::AbstractExpression) = (var, nothing)
@@ -44,6 +47,13 @@ module Symbolic
     Base.:(==)(first::Number, second::Numeric) = (first == second.value)
     Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
 
+    function parseexpr(expr::AbstractExpression, vars::NTuple{N, Variable}) where {N}
+        args = join((var.label for var in vars), ',')
+        exprstr = "($(args)) -> $(string(expr))"
+        metaexpr = Meta.parse(exprstr)
+        eval(metaexpr)
+    end
+
     struct NAryAddition{T <: Tuple} <: AbstractExpression{T}
         elements::T
     end
@@ -61,7 +71,7 @@ module Symbolic
     end
     NAryAddition(elements...) = NAryAddition(elements)
     Base.conj(expr::NAryAddition) = begin
-        NAryAddition([conj(element) for element in expr.elements])
+        NAryAddition((conj(element) for element in expr.elements)...,)
     end
 
     struct Division{T1, T2} <: AbstractExpression{Tuple{T1,T2}}
@@ -75,6 +85,47 @@ module Symbolic
         parenthesize(io, expr.denominator)
     end
 
+    abstract type ConditionStatement{T} <: AbstractStatement{T}
+    end
+
+    struct Conditional{T1 <: ConditionStatement, T2 <: AbstractExpression, T3 <: AbstractExpression} <: AbstractExpression{Tuple{T1, T2, T3}}
+        condition::T1
+        whentrue::T2
+        whenfalse::T3
+    end
+    convertToFunction(cndl::Conditional, var::Variable) = begin
+        x -> begin
+            if convertToFunction(cndl.condition, var)(x)
+                convertToFunction(cndl.whentrue, var)(x)
+            else
+                convertToFunction(cndl.whenfalse, var)(x)
+            end
+        end
+    end
+    Base.show(io::IO, condl::Conditional) = begin
+        parenthesize(io, condl.condition)
+        print(io, " ? ")
+        parenthesize(io, condl.whentrue)
+        print(io, " : ")
+        parenthesize(io, condl.whenfalse)
+    end
+
+
+    struct IsEqual{T1 <: AbstractExpression, T2 <: AbstractExpression} <: ConditionStatement{Tuple{T1, T2}}
+        lhs::T1
+        rhs::T2
+    end
+    # Base.:(==)(lhs::AbstractExpression, rhs::AbstractExpression) = IsEqual(lhs, rhs)
+    Base.show(io::IO, cond::IsEqual) = print(io, cond.lhs, " == ", cond.rhs)
+    convertToFunction(cond::IsEqual, var::Variable) = begin
+        x -> convertToFunction(cond.lhs, var)(x) == convertToFunction(cond.rhs, var)(x)
+    end
+
+    struct IsLessThan{T1 <: AbstractExpression, T2 <: AbstractExpression} <: ConditionStatement{Tuple{T1, T2}}
+        lhs::T1
+        rhs::T2
+    end
+    Base.show(io::IO, cond::IsLessThan) = print(io, cond.lhs, " < ", cond.rhs)
 
     struct Exponential{T} <: AbstractExpression{Tuple{T}}
         argument::T
@@ -153,9 +204,19 @@ module Symbolic
         x::T1
         y::T2
     end
+    function Power(x::AbstractExpression, y::Numeric)
+        if y == 0
+            1
+        elseif y == 1
+            x
+        else
+            invoke(Power, Tuple{AbstractExpression, AbstractExpression}, x, y)
+        end
+    end
     Base.:(^)(x::T1, y::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = Power(x, y)
     Base.:(^)(x::T, y::Number) where {T <: AbstractExpression} = Power(x, Numeric(y))
-    Base.conj(expr::Power{T1,Numeric{Integer}}) where T1 = Power(conj(expr.x), expr.y)
+    Base.conj(expr::Power{T1,Numeric{Int64}}) where T1 = Power(conj(expr.x), expr.y)
+    Base.conj(expr::Power{T1,Numeric{Float64}}) where T1 = Power(conj(expr.x), expr.y)
     Base.show(io::IO, expr::Power) = begin
         parenthesize(io, expr.x)
         print(io, "^")
@@ -210,6 +271,7 @@ module Symbolic
     Base.:+(first::Number, second::AbstractExpression) = Numeric(first) + second
     Base.:+(first::AbstractExpression, second::Number) = first + Numeric(second)
     Base.:-(first::Number, second::AbstractExpression) = Numeric(first) - second
+    Base.:-(first::Numeric, second::Numeric) = Numeric(first.value - second.value)
     Base.:-(first::T1, second::T2) where {T1 <: AbstractExpression, T2 <: AbstractExpression} = first + -second
     Base.:-(object::T) where {T <: AbstractExpression} = Negation(object)
     Base.:-(first::AbstractExpression, second::Number) = first - Numeric(second)
@@ -378,4 +440,7 @@ module Symbolic
     export Negation, Abs
     export combineterms, is_unitary
     export convertToFunction, evalexpr
+    export ConditionStatement, Conditional
+    export parseexpr
+    export IsEqual, IsLessThan
 end
