@@ -46,6 +46,7 @@ module Symbolic
     Base.:(==)(first::Numeric, second::Number) = (first.value == second)
     Base.:(==)(first::Number, second::Numeric) = (first == second.value)
     Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
+    Base.convert(::Type{AbstractExpression}, num::Number) = Numeric(num)
 
     function parseexpr(expr::AbstractExpression, vars::NTuple{N, Variable}) where {N}
         args = join((var.label for var in vars), ',')
@@ -95,7 +96,14 @@ module Symbolic
     end
     convertToFunction(cndl::Conditional, var::Variable) = begin
         x -> begin
-            if convertToFunction(cndl.condition, var)(x)
+            result = convertToFunction(cndl.condition, var)(x)
+            if isa(result, AbstractStatement)
+                Conditional(
+                    result, 
+                    convert(AbstractExpression, convertToFunction(cndl.whentrue, var)(x)),
+                    convert(AbstractExpression, convertToFunction(cndl.whenfalse, var)(x))
+                )
+            elseif result
                 convertToFunction(cndl.whentrue, var)(x)
             else
                 convertToFunction(cndl.whenfalse, var)(x)
@@ -115,10 +123,21 @@ module Symbolic
         lhs::T1
         rhs::T2
     end
+    IsEqual(lhs::Number, rhs::AbstractExpression) = IsEqual(Numeric(lhs), rhs)
+    IsEqual(lhs::AbstractExpression, rhs::Number) = IsEqual(lhs, Numeric(rhs))
+    IsEqual(lhs::Number, rhs::Number) = IsEqual(Numeric(lhs), Numeric(rhs))
     # Base.:(==)(lhs::AbstractExpression, rhs::AbstractExpression) = IsEqual(lhs, rhs)
     Base.show(io::IO, cond::IsEqual) = print(io, cond.lhs, " == ", cond.rhs)
     convertToFunction(cond::IsEqual, var::Variable) = begin
-        x -> convertToFunction(cond.lhs, var)(x) == convertToFunction(cond.rhs, var)(x)
+        x -> begin
+            lhs = convertToFunction(cond.lhs, var)(x)
+            rhs = convertToFunction(cond.rhs, var)(x)
+            if isa(lhs, AbstractExpression) || isa(rhs, AbstractExpression)
+                return IsEqual(lhs, rhs)
+            else
+                return lhs == rhs
+            end
+        end
     end
 
     struct IsLessThan{T1 <: AbstractExpression, T2 <: AbstractExpression} <: ConditionStatement{Tuple{T1, T2}}
@@ -429,7 +448,10 @@ module Symbolic
         x -> max.(convertToFunction(expr.arg1, var)(x), convertToFunction(expr.arg2, var)(x))
     end
 
-    evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
+    evalexpr(expr, x::Variable, x0) = Base.invokelatest(parseexpr(expr, (x,)), x0)
+    evalexpr(expr, vars::NTuple{N, Variable}, x0::NTuple{N, Float64}) where N = begin
+        Base.invokelatest(parseexpr(expr, vars), x0...)
+    end
 
     export AbstractStatement, AbstractExpression
     export Variable

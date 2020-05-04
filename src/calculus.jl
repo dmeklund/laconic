@@ -47,8 +47,11 @@ module Calculus
 
     evaluateintegral(integral::DefiniteIntegral) = begin
         println("Evaluating $(integral)")
-        integrandFunction = convertToFunction(integral.integrand, integral.variable)
-        quadgk(integrandFunction, integral.startpoint, integral.endpoint)[1]
+        integrandfunction = parseexpr(integral.integrand, (integral.variable,))
+        func = x -> Base.invokelatest(integrandfunction, x)
+        # integrandFunction = convertToFunction(integral.integrand, integral.variable)
+        println(func(1.5))
+        quadgk(func, integral.startpoint, integral.endpoint)[1]
     end
     evaluateintegral(integral::DefiniteIntegralN) = begin
         integrandfunction = parseexpr(integral.integrand, integral.vars)
@@ -56,7 +59,9 @@ module Calculus
         # but pcubature expects a function that takes a single tuple arg.
         func = (tup) -> real(integrandfunction(tup...))
         println("Evaluating $(integral.integrand)")
-        pcubature(func, integral.startpoints, integral.endpoints)[1]
+        # println(func(1.0))
+        pcubature(func, integral.startpoints, integral.endpoints, abstol=1e-8)[1]
+        # quadgk(func, integral.startpoints[1], integral.endpoints[1])
     end
 
     function setzero(f::Function, condition::Function)

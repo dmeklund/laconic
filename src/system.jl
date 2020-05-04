@@ -157,10 +157,11 @@ module SystemM
         # state matrix for identical particles should always be square;
         # i.e., each particle must use the same basis.
         for bases=CartesianIndices(dims)
-            coeff = getcoeff(state, bases)
-            index = flatindex(dims, bases)
+            coeff = getcoeff(state, Tuple(bases))
+            index = flatindex(dims, Tuple(bases))
             statevec[index] = coeff
         end
+        statevec
     end
     function setcoeff!(
         state::NIdenticalParticleState{T, N},

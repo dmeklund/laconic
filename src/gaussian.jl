@@ -2,6 +2,8 @@
 module Gaussian
     using Laconic
     using Laconic.Symbolic
+    using Distributed
+    using SharedArrays
     using SparseArrays
     using SpecialFunctions
 
@@ -113,7 +115,7 @@ module Gaussian
         powers::NTuple{N, Int64}
         origin::NTuple{N, Float64}
         normcoeff::Float64
-        pgbfs::NTuple{M, PrimitiveGaussianBasisFunction}
+        pgbfs::NTuple{M, PrimitiveGaussianBasisFunction{N}}
         coeffs::NTuple{M, Float64}
     end
 
@@ -161,26 +163,35 @@ module Gaussian
 
     overlap(a::ContractedGaussianBasisFunction, b::ContractedGaussianBasisFunction) = contract(overlap, a, b)
 
-    primitives(a::ContractedGaussianBasisFunction) = zip(a.coeffs, a.pgbfs)
+    primitives(a::ContractedGaussianBasisFunction{N}) where N = zip(a.coeffs, a.pgbfs)
 
-    function contract(func, a::ContractedGaussianBasisFunction, b::ContractedGaussianBasisFunction)
-        result = 0
-        for (coeffa, abf) in primitives(a)
-            for (coeffb, bbf) in primitives(b)
-                result += coeffa * coeffb * func(abf, bbf)
+    function contract(
+        func,
+        a::ContractedGaussianBasisFunction{N, M},
+        b::ContractedGaussianBasisFunction{N, M}
+    ) where {N, M}
+        result = 0.
+        for ind1=1:N
+            for ind2=1:N
+                result += a.coeffs[ind1] * b.coeffs[ind2] * func(a.pgbfs[ind1], b.pgbfs[ind2])::Float64
             end
         end
+        # for (coeffa, abf) in primitives(a)
+        #     for (coeffb, bbf) in primitives(b)
+        #         result += coeffa * coeffb * func(abf, bbf)
+        #     end
+        # end
         return a.normcoeff * b.normcoeff * result
     end
 
     function contract(
             f,
-            a::ContractedGaussianBasisFunction,
-            b::ContractedGaussianBasisFunction,
-            c::ContractedGaussianBasisFunction,
-            d::ContractedGaussianBasisFunction
-    )
-        s = 0
+            a::ContractedGaussianBasisFunction{N, M},
+            b::ContractedGaussianBasisFunction{N, M},
+            c::ContractedGaussianBasisFunction{N, M},
+            d::ContractedGaussianBasisFunction{N, M}
+    ) where {N,M}
+        s = 0.
         for (ca, abf) in primitives(a)
             for (cb, bbf) in primitives(b)
                 for (cc, cbf) in primitives(c)
@@ -270,8 +281,8 @@ module Gaussian
         g2 = pgbf3.exponent + pgbf4.exponent
         delta = .25 * (1/g1 + 1/g2)
 
-        B = ((
-            Barray(
+        B = ntuple(
+            ind->Barray(
                 pgbf1.powers[ind],
                 pgbf2.powers[ind],
                 pgbf3.powers[ind],
@@ -285,27 +296,29 @@ module Gaussian
                 g1,
                 g2,
                 delta
-            ) for ind in 1:N
-        )...,)
+            ),
+            Val(N)
+        )
 
-        s = 0
-        for multi=CartesianIndices(((0:pgbf1.powers[ind]+pgbf2.powers[ind]+pgbf3.powers[ind]+pgbf4.powers[ind] for ind=1:N)...,))
+        s = 0.0
+        ranges = ntuple(ind->0:pgbf1.powers[ind]+pgbf2.powers[ind]+pgbf3.powers[ind]+pgbf4.powers[ind], Val(N))
+        for multi=CartesianIndices(ranges)
             s += prod(B[ind][multi[ind]+1] for ind=1:N) * Fgamma(sum(Tuple(multi)), .25*rpq2/delta)
         end
         return pgbf1.normcoeff*pgbf2.normcoeff*pgbf3.normcoeff*pgbf4.normcoeff*2pi^(2.5)/(g1*g2*sqrt(g1+g2))*exp(-pgbf1.exponent*pgbf2.exponent*r122/g1)*exp(-pgbf3.exponent*pgbf4.exponent*r342/g2)*s
     end
 
     coulomb(
-            a::ContractedGaussianBasisFunction,
-            b::ContractedGaussianBasisFunction,
-            c::ContractedGaussianBasisFunction,
-            d::ContractedGaussianBasisFunction
-    ) = contract(coulomb, a, b, c, d)
+            a::ContractedGaussianBasisFunction{N},
+            b::ContractedGaussianBasisFunction{N},
+            c::ContractedGaussianBasisFunction{N},
+            d::ContractedGaussianBasisFunction{N},
+    ) where N = contract(coulomb, a, b, c, d)
 
-    function Fgamma(m::Int64,x::Float64,SMALL::Float64=1e-12)
+    function Fgamma(m::Int64, x::Float64, SMALL::Float64=1e-12)
         #println("Fgamma($m,$x)")
         x = max(x,SMALL) # Evidently needs underflow protection
-        return 0.5*x^(-m-0.5)*gammainc(m+0.5,x)
+        return 0.5 * x^(-m-0.5) * gammainc(m+0.5,x)
     end
 
     # function gammainc(a::Float64,x::Float64)
@@ -326,7 +339,7 @@ module Gaussian
     #     return exp(gln)*gam
     # end
     
-    gammainc(a::Float64, x::Float64) = gamma_inc(a, x, 0)[1] * gamma(a)
+    gammainc(a::Float64, x::Float64) = gamma_inc(a, x, 0)[1]::Float64 * gamma(a)
 
     function gser(a::Float64,x::Float64,ITMAX::Int64=100,EPS::Float64=3e-9)
         # Series representation of Gamma. NumRec sect 6.1.
@@ -577,8 +590,8 @@ module Gaussian
     end
     
 
-    struct GaussianBasis{N} <: AbstractBasis
-        cgbfs::NTuple{N, ContractedGaussianBasisFunction}
+    struct GaussianBasis{M, N} <: AbstractBasis
+        cgbfs::NTuple{M, ContractedGaussianBasisFunction{N}}
     end
 
     Base.length(basis::GaussianBasis{N}) where N = N
@@ -609,32 +622,46 @@ module Gaussian
         Operator("kineticenergy", matrix, basis)
     end
 
-    function coulomboperator(basis::CombinedBasis{Tuple{GaussianBasis{N1}, GaussianBasis{N2}}}) where {N1, N2}
+    function nuclearattractionoperator(basis::GaussianBasis{M,N}, nuccenter::Tuple{N, Float64}) where {M,N}
+        matrix = zeros(N, N)
+        for ind1=1:N
+            for ind2=1:N
+                matrix[ind1, ind2] = nuclear_attraction(basis.cgbfs[ind1], basis.cgbfs[ind2], nuccenter)
+                matrix[ind2, ind1] = matrix[ind1, ind2]
+            end
+        end
+        Operator("nuclearattraction", matrix, basis)
+    end
+
+    function coulomboperator(
+        basis::CombinedBasis{Tuple{GaussianBasis{M1,N}, GaussianBasis{M2,N}}},
+        thresh=1e-7
+    ) where {M1, M2, N}
         basis1 = basis.bases[1]
         basis2 = basis.bases[2]
-        N = N1*N2
-        matrix = spzeros(N,N)
-        linind = LinearIndices((1:N1, 1:N2))
-        for ind1=1:N1
-            for ind2=1:N2
-                for ind3=1:N1
-                    for ind4=1:N2
+        M = M1*M2
+        matrix = zeros(M, M)
+        # matrix = SharedArray{Float64}(N, N)
+        linind = LinearIndices((1:M1, 1:M2))
+        for ind1=1:M1
+            # println(Threads.threadid())
+            @inbounds for ind2=1:M2
+                for ind3=1:M1
+                    @simd for ind4=1:M2
                         row = linind[ind2, ind1]
                         col = linind[ind4, ind3]
-                        val = coulomb(
+                        result = coulomb(
                             basis1.cgbfs[ind1],
                             basis1.cgbfs[ind3],
                             basis2.cgbfs[ind2],
                             basis2.cgbfs[ind4]
                         )
-                        if abs(val) > 1e-10
-                            matrix[row, col] = val
-                        end
                     end
                 end
             end
         end
-        Operator("coulomb", matrix, basis)
+        matrix[matrix .< thresh] .= 0
+        Operator("coulomb", sparse(matrix), basis)
     end
 
     function Laconic.symbolic(basis::GaussianBasis, n::Int64, var::Variable)
@@ -645,5 +672,5 @@ module Gaussian
     export amplitude, overlap, kinetic, coulomb, symbolic
     export nuclear_attraction
     export GaussianBasis
-    export coulomboperator
+    export coulomboperator, nuclearattractionoperator
 end
