@@ -611,9 +611,9 @@ module Gaussian
         GaussianBasis(cgbfs)
     end
 
-    function Laconic.kineticenergyoperator(basis::GaussianBasis{N}) where N
-        matrix = zeros(N, N)
-        for ind1=1:N
+    function Laconic.kineticenergyoperator(basis::GaussianBasis{M,N}) where {M,N}
+        matrix = zeros(M, M)
+        for ind1=1:M
             for ind2=1:ind1
                 matrix[ind1, ind2] = kinetic(basis.cgbfs[ind1], basis.cgbfs[ind2])
                 matrix[ind2, ind1] = matrix[ind1, ind2]
@@ -622,10 +622,10 @@ module Gaussian
         Operator("kineticenergy", matrix, basis)
     end
 
-    function nuclearattractionoperator(basis::GaussianBasis{M,N}, nuccenter::Tuple{N, Float64}) where {M,N}
-        matrix = zeros(N, N)
-        for ind1=1:N
-            for ind2=1:N
+    function nuclearattractionoperator(basis::GaussianBasis{M,N}, nuccenter::NTuple{N, Float64}) where {M,N}
+        matrix = zeros(M, M)
+        for ind1=1:M
+            for ind2=1:M
                 matrix[ind1, ind2] = nuclear_attraction(basis.cgbfs[ind1], basis.cgbfs[ind2], nuccenter)
                 matrix[ind2, ind1] = matrix[ind1, ind2]
             end
@@ -634,15 +634,15 @@ module Gaussian
     end
 
     function coulomboperator(
-        basis::CombinedBasis{Tuple{GaussianBasis{M1,N}, GaussianBasis{M2,N}}},
+        basis::CombinedBasis{NTuple{P,GaussianBasis{M,N}}},
         thresh=1e-7
-    ) where {M1, M2, N}
+    ) where {M, N, P}
         basis1 = basis.bases[1]
         basis2 = basis.bases[2]
         M = M1*M2
         matrix = zeros(M, M)
         # matrix = SharedArray{Float64}(N, N)
-        linind = LinearIndices((1:M1, 1:M2))
+        linind = LinearIndices((1:M, 1:M))
         for ind1=1:M1
             # println(Threads.threadid())
             @inbounds for ind2=1:M2

@@ -353,6 +353,9 @@ module Symbolic
             if isa(elem1, Product)
                 return combineterms(Product(elements_copy[1:ind1-1]..., elem1.arguments..., elements_copy[ind1+1:end]))
             end
+            if elem1 == 0
+                return Numeric(0)
+            end
             for ind2 in ind1+1:length(elements_copy)
                 elem2 = elements_copy[ind2]
                 if elem1 == elem2
@@ -389,7 +392,7 @@ module Symbolic
                 end
             end
         end
-        NAryAddition(elements_copy...)
+        NAryAddition((element for element in elements_copy if element != 0)...)
     end
     combineterms(expr::Exponential) = Exponential(combineterms(expr.argument))
     combineterms(expr) = expr
@@ -448,10 +451,16 @@ module Symbolic
         x -> max.(convertToFunction(expr.arg1, var)(x), convertToFunction(expr.arg2, var)(x))
     end
 
-    evalexpr(expr, x::Variable, x0) = Base.invokelatest(parseexpr(expr, (x,)), x0)
+    # evalexpr(expr, x::Variable, x0) = Base.invokelatest(parseexpr(expr, (x,)), x0)
+    # evalexpr(expr, vars::NTuple{N, Variable}, x0::NTuple{N, Float64}) where N = begin
+    #     Base.invokelatest(parseexpr(expr, vars), x0...)
+    # end
+
+    evalexpr(expr, x::Variable, x0) = convertToFunction(expr, x)(x0)
     evalexpr(expr, vars::NTuple{N, Variable}, x0::NTuple{N, Float64}) where N = begin
-        Base.invokelatest(parseexpr(expr, vars), x0...)
+        convertToFunction(expr, vars...)(x0)
     end
+
 
     export AbstractStatement, AbstractExpression
     export Variable

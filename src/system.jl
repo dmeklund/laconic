@@ -70,7 +70,12 @@ module SystemM
         sum(coeffs[n] * symbolic(soln.basis, n, var) for n=1:length(soln.basis))
     end
 
-    function Laconic.symbolic(soln::TimeDependentSolution{CombinedBasis{T}}, basisind::Int, t::Float64, var::Variable) where {T}
+    function Laconic.symbolic(
+        soln::TimeDependentSolution{CombinedBasis{T}}, 
+        basisind::Int,
+        t::Float64,
+        var::Variable
+    ) where {T}
         coeffs = soln.odesol(t)
         sum(coeffs[m] * symbolic(soln.basis, m, basisind, var) for m=1:length(soln.basis))
     end
@@ -352,4 +357,5 @@ module SystemM
     export NParticleBuilder, NParticleState
     export IdenticalParticleBuilder
     export build, addgroup!, flatindex
+    export solve_system
 end
