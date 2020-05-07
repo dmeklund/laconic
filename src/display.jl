@@ -62,7 +62,7 @@ module DisplayM
             plot!(
                 p, 
                 xrange, 
-                abs2.(evalexpr(
+                imag.(evalexpr(
                     symbolic(soln, basisind, time, var),
                     var,
                     xrange

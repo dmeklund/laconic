@@ -14,7 +14,14 @@ module Symbolic
     LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
     Base.zero(expr::AbstractExpression) = Numeric(0)
+    Base.zero(::Type{<:AbstractExpression}) = Numeric(0)
+    Base.one(::Type{<:AbstractExpression}) = Numeric(1)
     Base.adjoint(expr::AbstractExpression) = conj(expr)
+    AbstractExpression(num::Number) = Numeric(num)
+    AbstractExpression(num::Numeric) = Numeric(num)
+    Base.oneunit(::Type{<:AbstractExpression}) = Numeric(1)
+    Base.isless(::AbstractExpression, ::AbstractExpression) = false
+    Base.inv(expr::AbstractExpression) = Numeric(1)/expr
     
     struct Variable <: AbstractExpression{Tuple{}}
         label::String
@@ -33,10 +40,17 @@ module Symbolic
     struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
         value::T
     end
+    Numeric(num::Numeric) = Numeric(num.value)
     Base.conj(expr::Numeric) = Numeric(conj(expr.value))
     parenthesize(io::IO, other) = print(io, other)
-    parenthesize(io::IO, number::Numeric) = print(io, number)
-    parenthesize(io::IO, number::Number) = print(io, number)
+    parenthesize(io::IO, number::Numeric) = print(io, number.value)
+    parenthesize(io::IO, number::Number) = begin
+        if number < 0
+            print(io, "(", number, ")")
+        else
+            print(io, number)
+        end
+    end
     parenthesize(io::IO, number::Numeric{Complex{T}}) where T = begin
         print(io, "(", number, ")")
     end
@@ -45,7 +59,6 @@ module Symbolic
     Base.:(==)(first::Numeric, second::Numeric) = (first.value == second.value)
     Base.:(==)(first::Numeric, second::Number) = (first.value == second)
     Base.:(==)(first::Number, second::Numeric) = (first == second.value)
-    Base.one(elem::AbstractExpression) = Numeric{Integer}(1)
     Base.convert(::Type{AbstractExpression}, num::Number) = Numeric(num)
 
     function parseexpr(expr::AbstractExpression, vars::NTuple{N, Variable}) where {N}
@@ -337,6 +350,7 @@ module Symbolic
     function NAryAddition(val1::Power{Cosine{T1},Numeric{T2}}, val2::Power{Sine{T3},Numeric{T4}}) where {T1,T2,T3,T4}
         val2 + val1
     end
+    NAryAddition() = Numeric(0)
 
     # function combineterms(expr::Negation{Product{T}}) where T
     #     combineterms(Product(-expr.element.elements[1], expr.element.elements[2:end]...))
