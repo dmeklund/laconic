@@ -20,6 +20,7 @@ module Symbolic
     AbstractExpression(num::Number) = Numeric(num)
     AbstractExpression(num::Numeric) = Numeric(num)
     Base.oneunit(::Type{<:AbstractExpression}) = Numeric(1)
+    # FIXME? implemented to support LU factorization
     Base.isless(::AbstractExpression, ::AbstractExpression) = false
     Base.inv(expr::AbstractExpression) = Numeric(1)/expr
     

@@ -636,7 +636,7 @@ module Gaussian
     function coulomboperator(
         basis::CombinedBasis{Tuple{GaussianBasis{M1,N}, GaussianBasis{M2, N}}},
         thresh=1e-7
-    ) where {M1, M2, N, P}
+    ) where {M1, M2, N}
         basis1 = basis.bases[1]
         basis2 = basis.bases[2]
         M = M1*M2
