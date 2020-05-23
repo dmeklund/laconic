@@ -5,6 +5,11 @@ module Symbolic
 
     abstract type AbstractStatement{T <: Tuple} end
     abstract type AbstractExpression{T <: Tuple} end
+
+    struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
+        value::T
+    end
+
     struct Equals{T1,T2} <: AbstractStatement{Tuple{T1,T2}}
         lhs::T1
         rhs::T2
@@ -13,7 +18,7 @@ module Symbolic
     parenthesize(io::IO, expr::AbstractStatement) = print(io, "(", expr, ")")
     LinearAlgebra.dot(x::AbstractExpression, y::AbstractExpression) = x * y
     Base.transpose(expr::AbstractExpression) = expr
-    Base.zero(expr::AbstractExpression) = Numeric(0)
+    Base.zero(::AbstractExpression) = Numeric(0)
     Base.zero(::Type{<:AbstractExpression}) = Numeric(0)
     Base.one(::Type{<:AbstractExpression}) = Numeric(1)
     Base.adjoint(expr::AbstractExpression) = conj(expr)
@@ -34,13 +39,10 @@ module Symbolic
     # some Julia magic to make broadcasting work with our Variable type
     Base.length(var::AbstractExpression) = 1
     Base.iterate(var::AbstractExpression) = (var, nothing)
-    Base.iterate(var::AbstractExpression, ::Any) = nothing
+    Base.iterate(::AbstractExpression, ::Any) = nothing
     Base.IteratorSize(::Type{<:AbstractExpression}) = Base.HasShape{0}()
-    Base.size(x::AbstractExpression) = ()
+    Base.size(::AbstractExpression) = ()
 
-    struct Numeric{T <: Number} <: AbstractExpression{Tuple{T}}
-        value::T
-    end
     Numeric(num::Numeric) = Numeric(num.value)
     Base.conj(expr::Numeric) = Numeric(conj(expr.value))
     parenthesize(io::IO, other) = print(io, other)
