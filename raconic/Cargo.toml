@@ -1,0 +1,14 @@
+[package]
+name = "hellocargo"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.10.0"
+itertools-num = "0.1.3"
+nalgebra = "0.29.0"
+num-complex = "0.4.0"
+num-rational = "0.4"
+num-traits = "0.2.14"
