@@ -4,13 +4,13 @@
 )]
 
 // mod spin;
+mod plots;
 
 use std::f64::consts::PI;
 
 use nalgebra as na;
 use num_complex::{Complex, Complex64};
 use num_traits::{Pow};
-use plotters::prelude::*;
 
 const HBAR: f64 = 1.0;
 
@@ -166,65 +166,35 @@ fn compare_single_point() {
     println!("difference: {}", next_psi.vals - actual_psi)
 }
 
-fn complex_ranges<'a, I>(iter: I) -> (f64, f64, f64, f64)
-where
-    I: Iterator<Item = &'a Complex64>
-{
-    let mut remin: Option<f64> = None;
-    let mut remax: Option<f64> = None;
-    let mut immin: Option<f64> = None;
-    let mut immax: Option<f64> = None;
-    for val in iter {
-        if remin == None {
-            remin = Some(val.re);
-            remax = Some(val.re);
-            immin = Some(val.im);
-            immax = Some(val.im);
-        } else {
-            if val.re < remin.unwrap() {
-                remin = Some(val.re);
-            }
-            if val.re > remax.unwrap() {
-                remax = Some(val.re);
-            }
-            if val.im < immin.unwrap() {
-                immin = Some(val.im);
-            }
-            if val.im > immax.unwrap() {
-                immax = Some(val.im);
-            }
-        }
-    }
-    (remin.unwrap(), remax.unwrap(), immin.unwrap(), immax.unwrap())
-}
-
 fn plot_over_time() {
     let boxbasis = BoxBasis::new(1, 1.0, 1.0);
     let xvals = LinearSpace { start: -0.5, end: 0.5, num: 10 };
-    let tvals = LinearSpace { start: 0.0, end: 10.0, num: 100 };
+    let tvals = LinearSpace { start: 0.0, end: 10.0, num: 1000 };
     let mut psivals = Vec::with_capacity(tvals.num);
     for time_val in tvals.iter() {
         let psi: Vec<Complex64> = xvals.iter().map(|xval| { boxbasis.psi(xval, time_val) }).collect();
         psivals.push(psi);
     }
 
-    let root = BitMapBackend::new("images/3dtest.png", (640, 480)).into_drawing_area();
-    root.fill(&WHITE).unwrap();
-    let iter = psivals.iter().flat_map(|psi| psi.iter());
-    let (remin, remax, immin, immax) = complex_ranges(iter);
-    let mut chart = ChartBuilder::on(&root)
-        .margin(20)
-        .caption("Test 3d figure", ("sans-serif", 40))
-        .build_cartesian_3d(xvals.start..xvals.end, remin..remax, immin..immax)
-        .unwrap();
-    chart.configure_axes().draw().unwrap();
-    // println!("{:?}", psivals[0]);
-    for psi0 in psivals {
-        chart.draw_series(LineSeries::new(
-            (0..xvals.len()).map(|ind| (xvals.get(ind), psi0[ind].re, psi0[ind].im)),
-            &RED
-        ));
-    }
+    plots::showplots(xvals, psivals, 1024, 768).unwrap();
+
+    // let root = BitMapBackend::new("images/3dtest.png", (640, 480)).into_drawing_area();
+    // root.fill(&WHITE).unwrap();
+    // let iter = psivals.iter().flat_map(|psi| psi.iter());
+    // let (remin, remax, immin, immax) = complex_ranges(iter);
+    // let mut chart = ChartBuilder::on(&root)
+    //     .margin(20)
+    //     .caption("Test 3d figure", ("sans-serif", 40))
+    //     .build_cartesian_3d(xvals.start..xvals.end, remin..remax, immin..immax)
+    //     .unwrap();
+    // chart.configure_axes().draw().unwrap();
+    // // println!("{:?}", psivals[0]);
+    // for psi0 in psivals {
+    //     chart.draw_series(LineSeries::new(
+    //         (0..xvals.len()).map(|ind| (xvals.get(ind), psi0[ind].re, psi0[ind].im)),
+    //         &RED
+    //     )).unwrap();
+    // }
 
     // let tvals = LinearSpace { start: 0.0, end: 2.0*PI, num: 100 };
     // let testvals: Vec<Complex64> = tvals.iter().map(|t| Complex64::new(0.0, -t).exp()).collect();

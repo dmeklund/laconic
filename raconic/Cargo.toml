@@ -1,5 +1,5 @@
 [package]
-name = "hellocargo"
+name = "raconic"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,8 +8,11 @@ edition = "2021"
 [dependencies]
 itertools = "0.10.0"
 itertools-num = "0.1.3"
+minifb = "0.20.0"
 nalgebra = "0.29.0"
 num-complex = "0.4.0"
 num-rational = "0.4"
 num-traits = "0.2.14"
-plotters = "0.3.1"
+plotters = {git="https://github.com/dmeklund/plotters.git", branch="de/cartesian3d_clone"}
+plotters-bitmap = {version="0.3.1"}
+time = "0.3.5"
