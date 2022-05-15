@@ -171,12 +171,24 @@ fn plot_over_time() {
     let xvals = LinearSpace { start: -0.5, end: 0.5, num: 10 };
     let tvals = LinearSpace { start: 0.0, end: 10.0, num: 1000 };
     let mut psivals = Vec::with_capacity(tvals.num);
+    // let mut estd = Vec::with_capacity(tvals.num);
+    // let mut laststate = None;
     for time_val in tvals.iter() {
         let psi: Vec<Complex64> = xvals.iter().map(|xval| { boxbasis.psi(xval, time_val) }).collect();
+        // if time_val == 0.0 {
+        //     let psi0 = na::DVector::from_vec(psi.clone());
+        //     laststate = Some(PositionState {
+        //         xvals,
+        //         time: 0.0,
+        //         vals: psi0,
+        //         mass: 1.0
+        //     });
+        // }
         psivals.push(psi);
+        // estd.push(laststate.unwrap());
     }
 
-    plots::showplots(xvals, psivals, 1024, 768).unwrap();
+    plots::showplots(xvals, Vec::from([psivals]), 1024, 768).unwrap();
 
     // let root = BitMapBackend::new("images/3dtest.png", (640, 480)).into_drawing_area();
     // root.fill(&WHITE).unwrap();

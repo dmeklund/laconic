@@ -82,7 +82,12 @@ pub fn complex_ranges<'a, I>(iter: I) -> (f64, f64, f64, f64)
 }
 
 
-pub fn showplots(xvals: LinearSpace, values: Vec<Vec<Complex64>>, width: usize, height: usize) -> Result<(), Box<dyn Error>> {
+pub fn showplots(
+        xvals: LinearSpace,
+        values: Vec<Vec<Vec<Complex64>>>,
+        width: usize,
+        height: usize
+) -> Result<(), Box<dyn Error>> {
     let mut buf = BufferWrapper(vec![0u32; width*height]);
     let mut window = Window::new(
         "My Window",
@@ -95,7 +100,7 @@ pub fn showplots(xvals: LinearSpace, values: Vec<Vec<Complex64>>, width: usize, 
         (width as u32, height as u32)
     )?.into_drawing_area();
     root.fill(&BLACK)?;
-    let iter = values.iter().flat_map(|psi| psi.iter());
+    let iter = values[0].iter().flat_map(|psi| psi.iter());
     let (remin, remax, immin, immax) = complex_ranges(iter);
 
     let mut chart = ChartBuilder::on(&root)
@@ -120,18 +125,8 @@ pub fn showplots(xvals: LinearSpace, values: Vec<Vec<Complex64>>, width: usize, 
             .duration_since(start_ts)
             .unwrap()
             .as_secs_f64();
-        // if let Some((ts, _, _)) = data.back() {
-        //     if epoch - ts < 1.0 / SAMPLE_RATE {
-        //         std::thread::sleep(std::time::Duration::from_secs_f64(epoch - ts));
-        //         continue;
-        //     }
-        //     let mut ts = *ts;
-        //     while ts < epoch {
-        //         ts += 1.0 / SAMPLE_RATE;
-        //
-        //     }
-        // }
         if epoch - last_flushed > 1.0 / FRAME_RATE {
+            println!("Actual frame rate: {}", 1.0 / (epoch - last_flushed));
             let root = BitMapBackend::<BGRXPixel>::with_buffer_and_format(
                 buf.borrow_mut(),
                 (width as u32, height as u32)
@@ -143,17 +138,21 @@ pub fn showplots(xvals: LinearSpace, values: Vec<Vec<Complex64>>, width: usize, 
                 .bold_grid_style(&GREEN.mix(0.2))
                 .light_grid_style(&TRANSPARENT)
                 .draw()?;
-            chart.draw_series(LineSeries::new(
-                (0..xvals.len()).map(|ind| (xvals.get(ind), values[dataind][ind].re, values[dataind][ind].im)),
-                &GREEN
-            ))?;
+            for series in &values {
+                chart.draw_series(LineSeries::new(
+                    (0..xvals.len()).map(|ind| (xvals.get(ind), series[dataind][ind].re, series[dataind][ind].im)),
+                    &GREEN
+                ))?;
+            }
             drop(root);
             drop(chart);
             window.update_with_buffer(buf.borrow(), width, height)?;
             last_flushed = epoch;
-            dataind = (dataind + 1) % values.len();
+            dataind = (dataind + 1) % values[0].len();
         } else {
-            std::thread::sleep(std::time::Duration::from_secs_f64(1.0 / SAMPLE_RATE));
+            let sleeptime = 1.0 / FRAME_RATE - (epoch - last_flushed);
+            println!("Sleeping {}s", sleeptime);
+            std::thread::sleep(std::time::Duration::from_secs_f64(sleeptime));
         }
     }
     Ok(())
