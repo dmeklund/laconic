@@ -80,6 +80,7 @@ impl LinearSpace {
     }
 }
 
+#[derive(Clone)]
 pub struct PositionState {
     pub xvals: LinearSpace,
     pub time: f64,
@@ -169,23 +170,25 @@ fn compare_single_point() {
 fn plot_over_time() {
     let boxbasis = BoxBasis::new(1, 1.0, 1.0);
     let xvals = LinearSpace { start: -0.5, end: 0.5, num: 10 };
-    let tvals = LinearSpace { start: 0.0, end: 10.0, num: 1000 };
+    let tvals = LinearSpace { start: 0.0, end: 10.0, num: 100 };
     let mut psivals = Vec::with_capacity(tvals.num);
-    // let mut estd = Vec::with_capacity(tvals.num);
-    // let mut laststate = None;
+    let mut estd = Vec::with_capacity(tvals.num);
+    let mut laststate = None;
     for time_val in tvals.iter() {
         let psi: Vec<Complex64> = xvals.iter().map(|xval| { boxbasis.psi(xval, time_val) }).collect();
-        // if time_val == 0.0 {
-        //     let psi0 = na::DVector::from_vec(psi.clone());
-        //     laststate = Some(PositionState {
-        //         xvals,
-        //         time: 0.0,
-        //         vals: psi0,
-        //         mass: 1.0
-        //     });
-        // }
+        if time_val == 0.0 {
+            let psi0 = na::DVector::from_vec(psi.clone());
+            laststate = Some(PositionState {
+                xvals,
+                time: 0.0,
+                vals: psi0,
+                mass: 1.0
+            });
+        } else {
+            laststate = Some(apply_time_step(laststate.unwrap(), 0.01));
+        }
         psivals.push(psi);
-        // estd.push(laststate.unwrap());
+        estd.push(laststate.as_ref().unwrap().clone());
     }
 
     plots::showplots(xvals, Vec::from([psivals]), 1024, 768).unwrap();
