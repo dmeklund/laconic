@@ -5,12 +5,17 @@
 
 // mod spin;
 mod plots;
+mod utils;
 
 use std::f64::consts::PI;
+use std::cmp;
 
-use nalgebra as na;
+use itertools::Itertools;
+
+// use nalgebra as na;
 use num_complex::{Complex, Complex64};
 use num_traits::{Pow};
+use crate::utils::norm2;
 
 const HBAR: f64 = 1.0;
 
@@ -84,7 +89,7 @@ impl LinearSpace {
 pub struct PositionState {
     pub xvals: LinearSpace,
     pub time: f64,
-    pub vals: na::DVector<Complex64>,
+    pub vals: Vec<Complex64>,
     pub mass: f64,
 }
 
@@ -93,45 +98,59 @@ fn apply_time_step(state: PositionState, dt: f64) -> PositionState {
     let dx = 0.1;
     let d2_dx2 = eval_2nd_deriv(&state.vals, dx);
     let coeff = Complex64::from(-HBAR*HBAR / (2.0*state.mass));
-    let kinetic = d2_dx2 * coeff;
-    let potential = na::DVector::from_element(kinetic.len(), Complex::from(0.0));
-    let d_dt = (kinetic + potential) / (Complex::i() * HBAR);
-    println!("d_dt: {}", &d_dt);
+    let kinetic: Vec<Complex64> = d2_dx2.iter().map(|x| x*coeff).collect();
+    // let potential = na::DVector::from_element(kinetic.len(), Complex::from(0.0));
+    let potential = vec![Complex::from(0.0); kinetic.len()];
+    println!("Potential: {}", potential.len());
+    println!("Kinetic: {}", kinetic.len());
+    let d_dt: Vec<Complex64> = kinetic.iter().zip(potential.iter())
+        .map(|(k, p)| k + p / (Complex::i() * HBAR))
+        .collect();
+    println!("d_dt: {:?}", &d_dt);
     PositionState {
         xvals: state.xvals,
         time: state.time + dt,
-        vals: state.vals + d_dt * Complex::from(dt),
+        vals: state.vals.iter().zip(d_dt.iter())
+            .map(|(st, ddt)| st + ddt * Complex::from(dt))
+            .collect(),
         mass: state.mass
     }
 }
 
-fn eval_2nd_deriv(yvals: &na::DVector<Complex64>, dx: f64) -> na::DVector<Complex64> {
-    let mut result = na::DVector::from_element(yvals.len(), Complex64::new(0.0, 0.0));
+fn eval_2nd_deriv(yvals: &Vec<Complex64>, dx: f64) -> Vec<Complex64> {
+    let mut result = Vec::with_capacity(yvals.len());
+    println!("Evaling 2nd deriv, length {}", yvals.len());
     for ind in 0..2 {
-        result[ind] = 1.0 / (dx * dx) * (
-              2.0 * yvals[ind]
-            - 5.0 * yvals[ind+1]
-            + 4.0 * yvals[ind+2]
-            - yvals[ind+3]
+        result.push(
+            1.0 / (dx * dx) * (
+                  2.0 * yvals[ind]
+                - 5.0 * yvals[ind+1]
+                + 4.0 * yvals[ind+2]
+                - yvals[ind+3]
+            )
         );
     }
-    for ind in 2..result.len()-2 {
-        result[ind] = 1.0/(dx*dx) * (
-            - 1.0/12.0*yvals[ind-2]
-            + 4.0/3.0*yvals[ind-1]
-            - 5.0/2.0*yvals[ind]
-            + 4.0/3.0*yvals[ind+1]
-            - 1.0/12.0*yvals[ind+2]
+    for ind in 2..yvals.len()-2 {
+        result.push(
+            1.0/(dx*dx) * (
+                - 1.0/12.0*yvals[ind-2]
+                + 4.0/3.0*yvals[ind-1]
+                - 5.0/2.0*yvals[ind]
+                + 4.0/3.0*yvals[ind+1]
+                - 1.0/12.0*yvals[ind+2]
+            )
         );
     }
-    for ind in result.len()-2..result.len() {
-        result[ind] = 1.0/(dx*dx) * (
-            2.0 * yvals[ind]
-            - 5.0 * yvals[ind-1]
-            + 4.0 * yvals[ind-2]
-            - yvals[ind-3]
-        );
-    }
+    // if result.len() > 2 {
+        for ind in yvals.len()-2..yvals.len() {
+            result.push(1.0 / (dx * dx) * (
+                2.0 * yvals[ind]
+                    - 5.0 * yvals[ind - 1]
+                    + 4.0 * yvals[ind - 2]
+                    - yvals[ind - 3]
+            ));
+        }
+    // }
     result
 }
 
@@ -144,11 +163,11 @@ fn compare_timesteps(totaltime: f64, max_increments: i32) {
 fn compare_single_point() {
     let boxbasis = BoxBasis::new(1, 1.0, 1.0);
     let xvals = LinearSpace { start: -0.5, end: 0.5, num: 10 };
-    let psi0 = na::DVector::from_iterator(
-        xvals.len(),
-        xvals.iter().map(|x| { boxbasis.psi0(x) }),
-    );
-    println!("psi0: {}", &psi0);
+    let psi0 = xvals
+        .iter()
+        .map(|x| boxbasis.psi0(x))
+        .collect();
+    println!("psi0: {:?}", &psi0);
     let initial_state = PositionState {
         xvals,
         time: 0.0,
@@ -158,13 +177,14 @@ fn compare_single_point() {
 
     let dt = 0.01;
     let next_psi = apply_time_step(initial_state, dt);
-    let actual_psi = na::DVector::from_iterator(
-        xvals.len(),
-        xvals.iter().map(|x| { boxbasis.psi(x, dt) })
-    );
-    println!("estimated: {}", &next_psi.vals);
-    println!("actual: {}", &actual_psi);
-    println!("difference: {}", next_psi.vals - actual_psi)
+    let actual_psi: Vec<Complex64> = xvals
+        .iter()
+        .map(|x| boxbasis.psi(x, dt))
+        .collect();
+    println!("estimated: {:?}", &next_psi.vals);
+    println!("actual: {:?}", &actual_psi);
+    println!("difference: {:?}", next_psi.vals.iter().zip(actual_psi.iter())
+        .map(|(est, act)| est - act));
 }
 
 fn plot_over_time() {
@@ -176,8 +196,9 @@ fn plot_over_time() {
     let mut laststate = None;
     for time_val in tvals.iter() {
         let psi: Vec<Complex64> = xvals.iter().map(|xval| { boxbasis.psi(xval, time_val) }).collect();
+        println!("Psi norm: {}", norm2(psi.iter()));
         if time_val == 0.0 {
-            let psi0 = na::DVector::from_vec(psi.clone());
+            let psi0 = psi.clone();
             laststate = Some(PositionState {
                 xvals,
                 time: 0.0,
@@ -187,6 +208,8 @@ fn plot_over_time() {
         } else {
             laststate = Some(apply_time_step(laststate.unwrap(), 0.01));
         }
+        // println!("{:?}", psi);
+        println!("Estd: {}", norm2(laststate.as_ref().unwrap().vals.iter()));
         psivals.push(psi);
         estd.push(laststate.as_ref().unwrap().clone());
     }
