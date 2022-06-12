@@ -101,18 +101,22 @@ fn apply_time_step(state: PositionState, dt: f64) -> PositionState {
     let kinetic: Vec<Complex64> = d2_dx2.iter().map(|x| x*coeff).collect();
     // let potential = na::DVector::from_element(kinetic.len(), Complex::from(0.0));
     let potential = vec![Complex::from(0.0); kinetic.len()];
-    println!("Potential: {}", potential.len());
-    println!("Kinetic: {}", kinetic.len());
+    // println!("Potential: {}", potential.len());
+    // println!("Kinetic: {}", kinetic.len());
     let d_dt: Vec<Complex64> = kinetic.iter().zip(potential.iter())
-        .map(|(k, p)| k + p / (Complex::i() * HBAR))
+        .map(|(k, p)| (k + p) / (Complex::i() * HBAR))
         .collect();
-    println!("d_dt: {:?}", &d_dt);
+    // println!("d_dt: {:?}", &d_dt);
+    let vals: Vec<Complex64> = state.vals.iter()
+        .zip(d_dt.iter())
+        .map(|(st, ddt)| st + ddt * Complex::from(dt))
+        .collect();
+    let norm = norm2(vals.iter()).sqrt();
+    let normalized = vals.iter().map(|x| x/norm).collect();
     PositionState {
         xvals: state.xvals,
         time: state.time + dt,
-        vals: state.vals.iter().zip(d_dt.iter())
-            .map(|(st, ddt)| st + ddt * Complex::from(dt))
-            .collect(),
+        vals: normalized,
         mass: state.mass
     }
 }
@@ -190,13 +194,12 @@ fn compare_single_point() {
 fn plot_over_time() {
     let boxbasis = BoxBasis::new(1, 1.0, 1.0);
     let xvals = LinearSpace { start: -0.5, end: 0.5, num: 10 };
-    let tvals = LinearSpace { start: 0.0, end: 10.0, num: 100 };
+    let tvals = LinearSpace { start: 0.0, end: 1.0, num: 1000 };
     let mut psivals = Vec::with_capacity(tvals.num);
     let mut estd = Vec::with_capacity(tvals.num);
     let mut laststate = None;
     for time_val in tvals.iter() {
         let psi: Vec<Complex64> = xvals.iter().map(|xval| { boxbasis.psi(xval, time_val) }).collect();
-        println!("Psi norm: {}", norm2(psi.iter()));
         if time_val == 0.0 {
             let psi0 = psi.clone();
             laststate = Some(PositionState {
@@ -206,15 +209,23 @@ fn plot_over_time() {
                 mass: 1.0
             });
         } else {
-            laststate = Some(apply_time_step(laststate.unwrap(), 0.01));
+            laststate = Some(apply_time_step(
+                laststate.unwrap(),
+                (tvals.end - tvals.start)/tvals.num as f64
+            ));
         }
         // println!("{:?}", psi);
         println!("Estd: {}", norm2(laststate.as_ref().unwrap().vals.iter()));
         psivals.push(psi);
-        estd.push(laststate.as_ref().unwrap().clone());
+        estd.push(laststate.as_ref().unwrap().vals.clone());
     }
 
-    plots::showplots(xvals, Vec::from([psivals]), 1024, 768).unwrap();
+    plots::showplots(
+        xvals,
+        Vec::from([psivals, estd]),
+        1024,
+        768
+    ).unwrap();
 
     // let root = BitMapBackend::new("images/3dtest.png", (640, 480)).into_drawing_area();
     // root.fill(&WHITE).unwrap();
